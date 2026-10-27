@@ -43,11 +43,6 @@ java -jar target/vulnscan.jar benchmark --ground-truth experiments/ground_truth.
 - `lab/` — `docker-compose.yml` dos alvos
 - `experiments/` — gabarito e resultados
 
-## Para desenvolver (com Claude Code)
-
-As decisões estão tomadas e documentadas. Abra o Claude Code na raiz do repositório — ele
-lê o `CLAUDE.md` automaticamente — e siga `docs/build-order.md` fase por fase.
-
 ## Licença
 
 Código sob MIT (ver `LICENSE`). Dependências e modelo são Apache 2.0 / MIT.
