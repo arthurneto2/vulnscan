@@ -94,9 +94,32 @@ public final class Scanner {
     public ScanReport scan(Target target) { ... }
 }
 
+// app/ScanRequest.java — pedido vindo da CLI. modules vazio = todos; out nulo = report.<format>.
+public record ScanRequest(java.net.URI target, java.util.List<String> modules,
+                          String format, java.nio.file.Path out) {}
+
 // app/ScanService.java — caso de uso chamado pela CLI.
-// app/Container.java   — raiz de composição: instancia adaptadores e injeta nos módulos.
-// app/Config.java      — modelo de versão fixada, URL do Ollama, caminhos.
+//   modules: por nome de --module, na ordem de execução; writers: um por format().
+//   Erro de uso → InvalidScanRequestException (CLI: saída 1). Erro de execução propaga (saída 2).
+public final class ScanService {
+    public ScanService(java.util.Map<String, VulnModule> modules,
+                       java.util.List<ReportWriter> writers) { ... }
+    public ScanReport scan(ScanRequest request) { ... }
+}
+
+// app/InvalidScanRequestException.java — alvo, módulo ou formato inválido.
+public final class InvalidScanRequestException extends RuntimeException { ... }
+
+// app/Config.java — configuração fixa. Modelo/URL do Ollama entram com #16/#17.
+public record Config(java.time.Duration httpTimeout) {
+    public static Config defaults() { ... }   // httpTimeout = 30 s
+}
+
+// app/Container.java — raiz de composição: instancia adaptadores e injeta nos módulos.
+public final class Container {
+    public Container(Config config) { ... }
+    public ScanService scanService() { ... }
+}
 ```
 
 ## Decisões fixadas (não reabrir sem motivo)
