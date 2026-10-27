@@ -1,0 +1,34 @@
+# Gabarito inicial (exemplo). Expanda com mais casos — positivos E negativos — por tipo.
+# Esquema completo e regras em docs/ground-truth.md.
+# Os ids de location abaixo são pontos de partida; confirme-os contra o alvo real.
+
+targets:
+  - name: dvwa
+    base_url: http://localhost:8080
+    cases:
+      - id: dvwa-sqli-id-param
+        type: SQL_INJECTION
+        location: "/vulnerabilities/sqli/?id="
+        vulnerable: true
+        notes: "campo id injetável no nível de segurança 'low'"
+
+      - id: dvwa-sqli-high-level
+        type: SQL_INJECTION
+        location: "/vulnerabilities/sqli/?id="
+        vulnerable: false
+        notes: "caso negativo — mesmo campo no nível 'impossible' (com prepared statements)"
+
+  - name: juice-shop
+    base_url: http://localhost:3000
+    cases:
+      - id: js-xss-search
+        type: XSS_REFLECTED
+        location: "/#/search?q="
+        vulnerable: true
+        notes: "parâmetro de busca reflete sem sanitizar"
+
+      - id: js-idor-basket
+        type: BROKEN_ACCESS_CONTROL
+        location: "/rest/basket/{id}"
+        vulnerable: true
+        notes: "acessa cesta de outro usuário trocando o id (IDOR)"

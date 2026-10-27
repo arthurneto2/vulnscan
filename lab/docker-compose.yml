@@ -1,0 +1,24 @@
+# Laboratório de alvos propositalmente vulneráveis.
+# Uso:
+#   docker compose -f lab/docker-compose.yml up -d
+#   docker compose -f lab/docker-compose.yml down
+#
+# Para resetar ao estado de fábrica entre execuções do experimento:
+#   docker compose -f lab/docker-compose.yml down && docker compose -f lab/docker-compose.yml up -d
+#
+# ATENÇÃO: alvos deliberadamente inseguros. Rodar só em rede local/isolada, nunca expostos.
+
+services:
+  dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: vulnscan-dvwa
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: vulnscan-juice-shop
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
