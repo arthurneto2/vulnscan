@@ -6,3 +6,6 @@ report.*
 *.iml
 .vscode/
 .DS_Store
+
+# Gerado pelo maven-shade-plugin a cada package
+dependency-reduced-pom.xml
