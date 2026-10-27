@@ -109,3 +109,7 @@ public final class Scanner {
   adaptador não conhecer o formato do veredito.
 - Mapas de header são `Map<String,String>` simples (não multimap). Suficiente para o
   escopo; se um header repetir, documente e junte por vírgula.
+- `JdkHttpClient`: nomes de header da **resposta** em minúsculas; valores repetidos
+  juntados por `", "` na ordem recebida; redirecionamentos **não** são seguidos (o 3xx
+  volta como resposta); 4xx/5xx são resposta normal; falha de transporte (conexão,
+  timeout) lança `UncheckedIOException`.
