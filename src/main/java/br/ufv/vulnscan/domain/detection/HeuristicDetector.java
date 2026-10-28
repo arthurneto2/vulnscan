@@ -11,6 +11,8 @@ import java.util.regex.Pattern;
 public final class HeuristicDetector implements Detector {
 
     private static final String NAME = "heuristic";
+    private static final String TIME_PAYLOAD_PREFIX = "sqli-time-";
+    private static final long TIME_THRESHOLD_MILLIS = 5000;
 
     /** Assinaturas de erro de banco por SGBD, testadas na ordem. */
     private static final Map<String, Pattern> SQL_ERRORS = new LinkedHashMap<>();
@@ -44,6 +46,11 @@ public final class HeuristicDetector implements Detector {
                 return new Verdict(true, 0.9,
                         "assinatura de erro de SQL na resposta: " + error.getKey(), NAME);
             }
+        }
+        long elapsed = evidence.response().elapsedMillis();
+        if (evidence.payload().id().startsWith(TIME_PAYLOAD_PREFIX) && elapsed >= TIME_THRESHOLD_MILLIS) {
+            return new Verdict(true, 0.8, "resposta levou " + elapsed + " ms com payload temporal (limiar "
+                    + TIME_THRESHOLD_MILLIS + " ms)", NAME);
         }
         return new Verdict(false, 0.6, "nenhuma assinatura de erro de SQL nem atraso temporal", NAME);
     }

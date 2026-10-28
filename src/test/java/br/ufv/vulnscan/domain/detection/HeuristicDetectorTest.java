@@ -87,6 +87,27 @@ class HeuristicDetectorTest {
         assertTrue(detector.judge(sqli("YOU HAVE AN ERROR IN YOUR SQL SYNTAX", 40)).vulnerable());
     }
 
+    @Test
+    void payloadTemporalLentoEVulneravel() {
+        Verdict verdict = detector.judge(evidence(VulnType.SQL_INJECTION, "sqli-time-sleep-5", "<p>ok</p>", 5000));
+
+        assertTrue(verdict.vulnerable());
+        assertEquals(0.8, verdict.confidence());
+        assertTrue(verdict.rationale().contains("5000 ms"), verdict.rationale());
+    }
+
+    @Test
+    void payloadTemporalAbaixoDoLimiarNaoEVulneravel() {
+        Verdict verdict = detector.judge(evidence(VulnType.SQL_INJECTION, "sqli-time-sleep-5", "<p>ok</p>", 4999));
+
+        assertFalse(verdict.vulnerable());
+    }
+
+    @Test
+    void lentidaoSemPayloadTemporalNaoConta() {
+        assertFalse(detector.judge(sqli("<p>ok</p>", 8000)).vulnerable());
+    }
+
     private static Evidence sqli(String body, long elapsedMillis) {
         return evidence(VulnType.SQL_INJECTION, "sqli-quote", body, elapsedMillis);
     }
