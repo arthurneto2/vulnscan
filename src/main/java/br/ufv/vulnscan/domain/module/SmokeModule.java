@@ -8,18 +8,19 @@ import br.ufv.vulnscan.port.HttpClient;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public final class SmokeModule implements VulnModule {
 
     private final HttpClient http;
 
     public SmokeModule(HttpClient http) {
-        this.http = http;
+        this.http = Objects.requireNonNull(http, "http");
     }
 
     @Override
     public VulnType type() {
-        return null;
+        throw new UnsupportedOperationException("módulo de fumaça não tem VulnType");
     }
 
     @Override

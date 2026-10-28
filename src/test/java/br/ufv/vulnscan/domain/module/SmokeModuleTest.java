@@ -6,6 +6,8 @@ import br.ufv.vulnscan.domain.model.Target;
 import br.ufv.vulnscan.port.HttpClient;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +15,9 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Testes do módulo de fumaça com HttpClient fake, sem rede. */
 class SmokeModuleTest {
@@ -31,6 +36,35 @@ class SmokeModuleTest {
         assertEquals(TARGET.baseUrl(), request.url());
         assertEquals(Map.of(), request.headers());
         assertNull(request.body());
+    }
+
+    @Test
+    void naoReportaNadaMesmoCom500() {
+        RecordingHttpClient http = new RecordingHttpClient(response(500));
+
+        assertTrue(new SmokeModule(http).scan(TARGET).isEmpty());
+    }
+
+    @Test
+    void erroDoHttpClientPropaga() {
+        UncheckedIOException error = new UncheckedIOException(new IOException("alvo fora do ar"));
+        RecordingHttpClient http = new RecordingHttpClient(null, error);
+
+        UncheckedIOException thrown = assertThrows(UncheckedIOException.class,
+                () -> new SmokeModule(http).scan(TARGET));
+        assertSame(error, thrown);
+    }
+
+    @Test
+    void typeLancaUnsupportedOperation() {
+        SmokeModule module = new SmokeModule(new RecordingHttpClient(response(200)));
+
+        assertThrows(UnsupportedOperationException.class, module::type);
+    }
+
+    @Test
+    void construtorRejeitaNull() {
+        assertThrows(NullPointerException.class, () -> new SmokeModule(null));
     }
 
     private static HttpResponse response(int status) {
