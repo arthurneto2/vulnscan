@@ -7,6 +7,8 @@ import br.ufv.vulnscan.domain.model.Payload;
 import br.ufv.vulnscan.domain.model.Verdict;
 import br.ufv.vulnscan.domain.model.VulnType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.net.URI;
 import java.util.Map;
@@ -60,6 +62,29 @@ class HeuristicDetectorTest {
         assertEquals(0.9, verdict.confidence());
         assertTrue(verdict.rationale().contains("MySQL"), verdict.rationale());
         assertEquals("heuristic", verdict.detector());
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "MySQL      | Warning: mysqli_fetch_array() expects parameter 1 to be mysqli_result",
+            "SQLite     | {\"error\":{\"message\":\"SQLITE_ERROR: unrecognized token: \\\"'\\\"\"}}",
+            "SQLite     | sqlite3.OperationalError: near \"x\": syntax error",
+            "PostgreSQL | ERROR: syntax error at or near \"'\" at character 31",
+            "PostgreSQL | org.postgresql.util.PSQLException: ERROR",
+            "genérico   | SQLSTATE[42000]: Syntax error or access violation",
+            "genérico   | [Microsoft][ODBC SQL Server Driver] Unclosed quotation mark",
+    })
+    void erroDeOutrosSgbdsEVulneravel(String sgbd, String body) {
+        Verdict verdict = detector.judge(sqli(body, 40));
+
+        assertTrue(verdict.vulnerable(), body);
+        assertEquals(0.9, verdict.confidence());
+        assertTrue(verdict.rationale().contains(sgbd), verdict.rationale());
+    }
+
+    @Test
+    void assinaturaIgnoraMaiusculas() {
+        assertTrue(detector.judge(sqli("YOU HAVE AN ERROR IN YOUR SQL SYNTAX", 40)).vulnerable());
     }
 
     private static Evidence sqli(String body, long elapsedMillis) {
