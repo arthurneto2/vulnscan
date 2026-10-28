@@ -9,6 +9,7 @@ import br.ufv.vulnscan.domain.model.VulnType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.net.URI;
 import java.util.Map;
@@ -106,6 +107,17 @@ class HeuristicDetectorTest {
     @Test
     void lentidaoSemPayloadTemporalNaoConta() {
         assertFalse(detector.judge(sqli("<p>ok</p>", 8000)).vulnerable());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = VulnType.class, mode = EnumSource.Mode.EXCLUDE, names = "SQL_INJECTION")
+    void tipoSemRegrasNaoEVulneravel(VulnType type) {
+        Verdict verdict = detector.judge(evidence(type, "outro", "You have an error in your SQL syntax", 40));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.0, verdict.confidence());
+        assertTrue(verdict.rationale().contains(type.name()), verdict.rationale());
+        assertEquals("heuristic", verdict.detector());
     }
 
     private static Evidence sqli(String body, long elapsedMillis) {
