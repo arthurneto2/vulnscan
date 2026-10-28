@@ -21,11 +21,11 @@ seguir.
 
 ## Fase 1 — Caminho HTTP ponta a ponta
 
-- [ ] `adapter/http/JdkHttpClient` implementando `HttpClient` com `java.net.http`.
-- [ ] `domain/Scanner` que roda uma lista de `VulnModule` e junta os `Finding`.
-- [ ] `adapter/report/MarkdownReportWriter`.
-- [ ] `app/Container` e `app/ScanService`; `cli/Main` com o subcomando `scan`.
-- [ ] Um `VulnModule` trivial de fumaça (faz uma requisição e não acha nada) só para fechar
+- [x] `adapter/http/JdkHttpClient` implementando `HttpClient` com `java.net.http`.
+- [x] `domain/Scanner` que roda uma lista de `VulnModule` e junta os `Finding`.
+- [x] `adapter/report/MarkdownReportWriter`.
+- [x] `app/Container` e `app/ScanService`; `cli/Main` com o subcomando `scan`.
+- [x] Um `VulnModule` trivial de fumaça (faz uma requisição e não acha nada) só para fechar
       o circuito.
 - **Checkpoint:** `vulnscan scan --target http://localhost:3000` roda e grava um `report.md`.
 
