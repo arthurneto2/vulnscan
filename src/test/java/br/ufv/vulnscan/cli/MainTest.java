@@ -7,6 +7,7 @@ import br.ufv.vulnscan.domain.model.Target;
 import br.ufv.vulnscan.domain.model.VulnType;
 import br.ufv.vulnscan.domain.module.VulnModule;
 import br.ufv.vulnscan.port.ReportWriter;
+import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -16,12 +17,15 @@ import picocli.CommandLine;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -39,12 +43,27 @@ class MainTest {
     @Test
     void scanGravaRelatorioESai0() throws IOException {
         Path out = dir.resolve("r.md");
+        // Container real: o módulo de fumaça faz um GET num servidor em processo, não no lab.
+        List<String> received = new CopyOnWriteArrayList<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/", exchange -> {
+            received.add(exchange.getRequestMethod() + " " + exchange.getRequestURI());
+            exchange.sendResponseHeaders(200, -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            String target = "http://127.0.0.1:" + server.getAddress().getPort() + "/";
 
-        Result result = run(new Main(), "scan", "--target", "http://localhost:3000", "--out", out.toString());
+            Result result = run(new Main(), "scan", "--target", target, "--out", out.toString());
 
-        assertEquals(0, result.code(), result.err());
-        assertTrue(Files.readString(out).contains("Nenhum achado."));
-        assertTrue(result.out().contains("Scan concluído: 0 achado(s). Relatório: " + out), result.out());
+            assertEquals(0, result.code(), result.err());
+            assertEquals(List.of("GET /"), received);
+            assertTrue(Files.readString(out).contains("Nenhum achado."));
+            assertTrue(result.out().contains("Scan concluído: 0 achado(s). Relatório: " + out), result.out());
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test

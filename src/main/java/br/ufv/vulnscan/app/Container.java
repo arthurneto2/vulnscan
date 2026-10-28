@@ -2,6 +2,7 @@ package br.ufv.vulnscan.app;
 
 import br.ufv.vulnscan.adapter.http.JdkHttpClient;
 import br.ufv.vulnscan.adapter.report.MarkdownReportWriter;
+import br.ufv.vulnscan.domain.module.SmokeModule;
 import br.ufv.vulnscan.domain.module.VulnModule;
 import br.ufv.vulnscan.port.HttpClient;
 import br.ufv.vulnscan.port.ReportWriter;
@@ -28,10 +29,13 @@ public final class Container {
 
     /**
      * Módulos por nome de {@code --module}, na ordem de execução. Cada módulo recebe o
-     * {@link #httpClient} (e o Detector) por construtor. Vazio até o módulo de fumaça (#8).
+     * {@link #httpClient} (e o Detector) por construtor. O {@code smoke} é temporário: sai
+     * quando entrar o primeiro módulo real (SqlInjectionModule, issue #10).
      */
     private Map<String, VulnModule> modules() {
-        return new LinkedHashMap<>();
+        Map<String, VulnModule> modules = new LinkedHashMap<>();
+        modules.put("smoke", new SmokeModule(httpClient));
+        return modules;
     }
 
     private List<ReportWriter> writers() {
