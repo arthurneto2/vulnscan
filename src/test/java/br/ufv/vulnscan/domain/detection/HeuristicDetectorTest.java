@@ -14,6 +14,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Testes do detector heurístico com Evidence montada à mão, sem rede. */
 class HeuristicDetectorTest {
@@ -46,6 +47,19 @@ class HeuristicDetectorTest {
     @Test
     void evidenciaNulaLancaNpe() {
         assertThrows(NullPointerException.class, () -> detector.judge(null));
+    }
+
+    @Test
+    void erroMysqlEVulneravel() {
+        String body = "<pre>You have an error in your SQL syntax; check the manual that corresponds to "
+                + "your MariaDB server version for the right syntax to use near ''1''' at line 1</pre>";
+
+        Verdict verdict = detector.judge(sqli(body, 40));
+
+        assertTrue(verdict.vulnerable());
+        assertEquals(0.9, verdict.confidence());
+        assertTrue(verdict.rationale().contains("MySQL"), verdict.rationale());
+        assertEquals("heuristic", verdict.detector());
     }
 
     private static Evidence sqli(String body, long elapsedMillis) {
