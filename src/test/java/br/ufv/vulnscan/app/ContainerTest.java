@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -65,23 +66,30 @@ class ContainerTest {
     }
 
     @Test
-    void moduloSmokeFazUmGetNoAlvo() throws IOException {
-        Path out = dir.resolve("report.md");
+    void moduloSqliFazLoginEAtacaOEndpointDeInjecao() {
         ScanService service = new Container(Config.defaults()).scanService();
 
-        service.scan(new ScanRequest(target(), List.of("smoke"), "md", out));
+        service.scan(new ScanRequest(target(), List.of("sqli"), "md", dir.resolve("report.md")));
 
-        assertEquals(List.of("GET /"), received);
-        assertTrue(Files.readString(out).contains("Nenhum achado."));
+        assertTrue(received.contains("GET /login.php"), received::toString);
+        assertTrue(received.stream().anyMatch(r -> r.startsWith("GET /vulnerabilities/sqli/")), received::toString);
     }
 
     @Test
-    void semModulosRodaAFumaca() {
+    void semModulosRodaOModuloRegistrado() {
         ScanService service = new Container(Config.defaults()).scanService();
 
         service.scan(new ScanRequest(target(), List.of(), "md", dir.resolve("report.md")));
 
-        assertEquals(List.of("GET /"), received);
+        assertTrue(received.stream().anyMatch(r -> r.startsWith("GET /vulnerabilities/sqli/")), received::toString);
+    }
+
+    @Test
+    void naoRegistraMaisOModuloDeFumaca() {
+        ScanService service = new Container(Config.defaults()).scanService();
+
+        assertThrows(InvalidScanRequestException.class,
+                () -> service.scan(new ScanRequest(target(), List.of("smoke"), "md", dir.resolve("report.md"))));
     }
 
     private int port() {

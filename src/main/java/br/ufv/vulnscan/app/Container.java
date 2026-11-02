@@ -2,7 +2,10 @@ package br.ufv.vulnscan.app;
 
 import br.ufv.vulnscan.adapter.http.JdkHttpClient;
 import br.ufv.vulnscan.adapter.report.MarkdownReportWriter;
-import br.ufv.vulnscan.domain.module.SmokeModule;
+import br.ufv.vulnscan.domain.detection.HeuristicDetector;
+import br.ufv.vulnscan.domain.model.Payload;
+import br.ufv.vulnscan.domain.model.VulnType;
+import br.ufv.vulnscan.domain.module.SqlInjectionModule;
 import br.ufv.vulnscan.domain.module.VulnModule;
 import br.ufv.vulnscan.port.HttpClient;
 import br.ufv.vulnscan.port.ReportWriter;
@@ -29,12 +32,14 @@ public final class Container {
 
     /**
      * Módulos por nome de {@code --module}, na ordem de execução. Cada módulo recebe o
-     * {@link #httpClient} (e o Detector) por construtor. O {@code smoke} é temporário: sai
-     * quando entrar o primeiro módulo real (SqlInjectionModule, issue #10).
+     * {@link #httpClient} e seu {@code Detector} por construtor; os payloads são lidos do
+     * classpath aqui (o domínio não toca disco) e injetados. O detector heurístico é o
+     * padrão da Fase 2; o {@code --detector llm|both} entra com a camada de IA.
      */
     private Map<String, VulnModule> modules() {
+        List<Payload> sqliPayloads = PayloadLoader.load("payloads/sqli.txt", VulnType.SQL_INJECTION);
         Map<String, VulnModule> modules = new LinkedHashMap<>();
-        modules.put("smoke", new SmokeModule(httpClient));
+        modules.put("sqli", new SqlInjectionModule(httpClient, new HeuristicDetector(), sqliPayloads));
         return modules;
     }
 
