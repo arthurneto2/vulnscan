@@ -117,7 +117,14 @@ Fakes de teste (escritos no passo 1, reusados nos demais):
   (o `PayloadLoader` fica em `app/`): `DependencyRuleTest` (crit. 12).
 - Rodar **`mvn clean verify`** → tudo verde (crit. 12).
 
-## Passo 8 — Checkpoint da Fase 2 (manual, laboratório) + build-order
+## Passo 8 — ✅ feito — Checkpoint da Fase 2 (manual, laboratório) + build-order
+
+> Checkpoint atingido em 2026-11-01: `scan --target http://localhost:8080 --module sqli`
+> gravou 3 achados de SQL_INJECTION no DVWA (`vulnerables/web-dvwa:latest`, MariaDB):
+> `sqli-quote-1` por assinatura de erro (0.90) e os dois temporais `sqli-time-mysql-*`
+> por atraso (0.80). Login do módulo OK. Payloads booleanos/union voltaram negativos —
+> limitação conhecida (booleana adiada; ver spec).
+
 
 - `mvn package -DskipTests` → `target/vulnscan.jar`.
 - `docker compose -f lab/docker-compose.yml up -d`; aguardar o DVWA subir; na primeira vez
