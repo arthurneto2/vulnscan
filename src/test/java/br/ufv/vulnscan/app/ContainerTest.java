@@ -7,37 +7,56 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Testes da raiz de composição: grafo montado à mão, sem framework de DI. O alvo é um
- * servidor do JDK em processo (porta efêmera), nunca o laboratório.
+ * servidor do JDK em processo (porta efêmera) que imita o DVWA, nunca o laboratório.
  */
 class ContainerTest {
+
+    private static final String MYSQL_ERROR = "<pre>You have an error in your SQL syntax; check the manual "
+            + "that corresponds to your MariaDB server version for the right syntax</pre>";
 
     @TempDir
     Path dir;
 
     private HttpServer server;
     private final List<String> received = new CopyOnWriteArrayList<>();
+    private final List<String> cookies = new CopyOnWriteArrayList<>();
 
+    /** Imita o DVWA: em /vulnerabilities/sqli/, id com aspas simples devolve erro de MySQL. */
     @BeforeEach
     void startServer() throws IOException {
         server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         server.createContext("/", exchange -> {
-            received.add(exchange.getRequestMethod() + " " + exchange.getRequestURI());
-            exchange.sendResponseHeaders(200, -1);
-            exchange.close();
+            URI uri = exchange.getRequestURI();
+            received.add(exchange.getRequestMethod() + " " + uri.getPath());
+            String cookie = exchange.getRequestHeaders().getFirst("Cookie");
+            if (cookie != null) {
+                cookies.add(cookie);
+            }
+            boolean injectable = uri.getPath().equals("/vulnerabilities/sqli/")
+                    && uri.getQuery() != null && uri.getQuery().contains("id=1'");
+            byte[] body = (injectable ? MYSQL_ERROR : "<p>ok</p>").getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (OutputStream out = exchange.getResponseBody()) {
+                out.write(body);
+            }
         });
         server.start();
     }
@@ -53,42 +72,40 @@ class ContainerTest {
     }
 
     @Test
-    void scanServiceGravaRelatorioMarkdown() throws IOException {
+    void moduloSqliDetectaErroMysqlNoPontoDoDvwa() throws IOException {
         Path out = dir.resolve("report.md");
         ScanService service = new Container(Config.defaults()).scanService();
 
-        service.scan(new ScanRequest(target(), List.of(), "md", out));
+        service.scan(new ScanRequest(target(), List.of("sqli"), "md", out,
+                Map.of("Cookie", "PHPSESSID=abc; security=low")));
 
         String md = Files.readString(out);
-        assertTrue(md.contains("# Relatório de scan — 127.0.0.1:" + port()), md);
-        assertTrue(md.contains("Nenhum achado."), md);
+        assertTrue(md.contains("- **Achados:** 1"), md);
+        assertTrue(md.contains("SQL_INJECTION — HIGH"), md);
+        assertTrue(md.contains("You have an error in your SQL syntax"), md);
+        assertTrue(!cookies.isEmpty() && cookies.stream().allMatch("PHPSESSID=abc; security=low"::equals),
+                "cookies: " + cookies);
     }
 
     @Test
-    void moduloSmokeFazUmGetNoAlvo() throws IOException {
-        Path out = dir.resolve("report.md");
-        ScanService service = new Container(Config.defaults()).scanService();
-
-        service.scan(new ScanRequest(target(), List.of("smoke"), "md", out));
-
-        assertEquals(List.of("GET /"), received);
-        assertTrue(Files.readString(out).contains("Nenhum achado."));
-    }
-
-    @Test
-    void semModulosRodaAFumaca() {
+    void semModulosRodaSqliNosPontosDoDvwaEDoJuiceShop() {
         ScanService service = new Container(Config.defaults()).scanService();
 
         service.scan(new ScanRequest(target(), List.of(), "md", dir.resolve("report.md")));
 
-        assertEquals(List.of("GET /"), received);
+        assertTrue(received.contains("GET /vulnerabilities/sqli/"), "recebidas: " + received);
+        assertTrue(received.contains("GET /rest/products/search"), "recebidas: " + received);
     }
 
-    private int port() {
-        return server.getAddress().getPort();
+    @Test
+    void moduloSmokeNaoExisteMais() {
+        ScanService service = new Container(Config.defaults()).scanService();
+
+        assertThrows(InvalidScanRequestException.class,
+                () -> service.scan(new ScanRequest(target(), List.of("smoke"), "md", dir.resolve("r.md"))));
     }
 
     private URI target() {
-        return URI.create("http://127.0.0.1:" + port() + "/");
+        return URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/");
     }
 }

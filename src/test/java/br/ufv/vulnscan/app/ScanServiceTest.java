@@ -59,6 +59,16 @@ class ScanServiceTest {
     }
 
     @Test
+    void passaHeadersAoTarget() {
+        FakeModule module = new FakeModule("sqli", List.of());
+        Map<String, String> headers = Map.of("Cookie", "PHPSESSID=abc; security=low");
+
+        service(Map.of("sqli", module)).scan(new ScanRequest(LAB, List.of(), "md", null, headers));
+
+        assertEquals(new Target("localhost:3000", LAB, headers), module.receivedTarget);
+    }
+
+    @Test
     void semModulosPedidosRodaTodosNaOrdem() {
         service(registry("a", "b", "c")).scan(request(List.of()));
 

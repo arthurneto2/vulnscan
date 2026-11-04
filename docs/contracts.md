@@ -13,8 +13,11 @@ enum VulnType { SQL_INJECTION, XSS_REFLECTED, XSS_STORED, BROKEN_AUTH, BROKEN_AC
 
 enum Severity { INFO, LOW, MEDIUM, HIGH, CRITICAL }
 
-// Alvo sob teste (um app do laboratório).
-record Target(String name, java.net.URI baseUrl) {}
+// Alvo sob teste (um app do laboratório). headers vão em toda requisição ao alvo
+// (ex.: cookie de sessão do DVWA, vindo de --header); nulo → vazio; cópia imutável.
+record Target(String name, java.net.URI baseUrl, java.util.Map<String, String> headers) {
+    Target(String name, java.net.URI baseUrl) { ... }   // headers vazios
+}
 
 // Um payload de ataque, carregado de arquivo ou gerado por um módulo.
 record Payload(String id, VulnType type, String value, String description) {}
@@ -63,6 +66,28 @@ public interface VulnModule {
 }
 ```
 
+## Módulos concretos (`domain/module/`)
+
+```java
+// Ponto de injeção: GET em path (relativo à URL base; pode ter query fixa) com o payload
+// no parâmetro de query `parameter`.
+record InjectionPoint(String path, String parameter) {}
+
+// Parser puro do arquivo de payloads (id<TAB>valor<TAB>descrição; # e vazias ignoradas).
+// Linha malformada ou id repetido → IllegalArgumentException citando a linha.
+public final class PayloadFile {
+    public static java.util.List<Payload> parse(String content, VulnType type) { ... }
+}
+
+// SQLi: um GET por (ponto × payload), na ordem; positivo → Finding HIGH e encerra o ponto.
+// Nulos → NPE; listas vazias ou payload de outro tipo → IllegalArgumentException.
+public final class SqlInjectionModule implements VulnModule {
+    public SqlInjectionModule(HttpClient http, Detector detector,
+                              java.util.List<Payload> payloads,
+                              java.util.List<InjectionPoint> points) { ... }
+}
+```
+
 ## Portas (`port/`) — a fronteira com o mundo externo
 
 ```java
@@ -94,9 +119,14 @@ public final class Scanner {
     public ScanReport scan(Target target) { ... }
 }
 
-// app/ScanRequest.java — pedido vindo da CLI. modules vazio = todos; out nulo = report.<format>.
+// app/ScanRequest.java — pedido vindo da CLI. modules vazio = todos; out nulo = report.<format>;
+// headers (de --header) vão para Target.headers; nulo → vazio.
 public record ScanRequest(java.net.URI target, java.util.List<String> modules,
-                          String format, java.nio.file.Path out) {}
+                          String format, java.nio.file.Path out,
+                          java.util.Map<String, String> headers) {
+    public ScanRequest(java.net.URI target, java.util.List<String> modules,
+                       String format, java.nio.file.Path out) { ... }   // headers vazios
+}
 
 // app/ScanService.java — caso de uso chamado pela CLI.
 //   modules: por nome de --module, na ordem de execução; writers: um por format().

@@ -38,16 +38,17 @@ class MainTest {
     Path dir;
 
     private final List<String> ran = new ArrayList<>();
+    private final List<Target> targets = new ArrayList<>();
     private final FakeWriter md = new FakeWriter();
 
     @Test
     void scanGravaRelatorioESai0() throws IOException {
         Path out = dir.resolve("r.md");
-        // Container real: o módulo de fumaça faz um GET num servidor em processo, não no lab.
+        // Container real: o módulo sqli ataca um servidor em processo (sem falha), não o lab.
         List<String> received = new CopyOnWriteArrayList<>();
         HttpServer server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         server.createContext("/", exchange -> {
-            received.add(exchange.getRequestMethod() + " " + exchange.getRequestURI());
+            received.add(exchange.getRequestMethod() + " " + exchange.getRequestURI().getPath());
             exchange.sendResponseHeaders(200, -1);
             exchange.close();
         });
@@ -58,7 +59,7 @@ class MainTest {
             Result result = run(new Main(), "scan", "--target", target, "--out", out.toString());
 
             assertEquals(0, result.code(), result.err());
-            assertEquals(List.of("GET /"), received);
+            assertTrue(received.contains("GET /vulnerabilities/sqli/"), "recebidas: " + received);
             assertTrue(Files.readString(out).contains("Nenhum achado."));
             assertTrue(result.out().contains("Scan concluído: 0 achado(s). Relatório: " + out), result.out());
         } finally {
@@ -82,6 +83,35 @@ class MainTest {
 
         assertEquals(0, result.code(), result.err());
         assertEquals(List.of("a", "c"), ran);
+    }
+
+    @Test
+    void headerRepetivelChegaAoAlvo() {
+        Result result = run(mainWith(registry("a")), "scan", "--target", "http://localhost:8080",
+                "--header", "Cookie: PHPSESSID=abc; security=low", "--header", "X-Lab:  dvwa ");
+
+        assertEquals(0, result.code(), result.err());
+        assertEquals(Map.of("Cookie", "PHPSESSID=abc; security=low", "X-Lab", "dvwa"), targets.get(0).headers());
+    }
+
+    @Test
+    void headerRepetidoJuntaPorVirgula() {
+        Result result = run(mainWith(registry("a")), "scan", "--target", "http://localhost:8080",
+                "--header", "Accept: text/html", "--header", "Accept: application/json");
+
+        assertEquals(0, result.code(), result.err());
+        assertEquals(Map.of("Accept", "text/html, application/json"), targets.get(0).headers());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"sem-dois-pontos", ": valor-sem-nome", "  : x"})
+    void headerInvalidoSai1SemRodar(String header) {
+        Result result = run(mainWith(registry("a")), "scan", "--target", "http://localhost:8080",
+                "--header", header);
+
+        assertEquals(1, result.code());
+        assertTrue(result.err().contains("erro: header inválido"), result.err());
+        assertEquals(List.of(), ran);
     }
 
     @Test
@@ -216,6 +246,7 @@ class MainTest {
         @Override
         public List<Finding> scan(Target target) {
             ran.add(name);
+            targets.add(target);
             if (failure != null) {
                 throw failure;
             }
