@@ -87,8 +87,9 @@ seguir.
 ## Fase 7 — Acabamento
 
 - [x] `JsonReportWriter` e `HtmlReportWriter`.
-- [ ] README completo e evidências de execução para o relatório.
-- [ ] Revisão da regra de dependência (nada de `adapter` importado em `domain`/`port`).
+- [x] README completo e evidências de execução para o relatório.
+- [x] Revisão da regra de dependência (nada de `adapter` importado em `domain`/`port`; o
+      `domain/` também sem libs externas nem rede/disco do JDK, com allowlist do Jackson).
 
 ## Testes — princípio
 

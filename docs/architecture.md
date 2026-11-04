@@ -33,6 +33,13 @@ CLI (picocli)  →  app/ScanService  →  domain/Scanner
 A seta de dependência aponta sempre para dentro. Um `import br.ufv.vulnscan.adapter.*`
 dentro de `domain/` ou `port/` é um erro de arquitetura.
 
+O `domain/` também não importa **bibliotecas externas** nem pacotes de **rede/disco do JDK**:
+um import no domínio só é válido se for `java.*` (exceto `java.net.http`, `java.nio.file` e
+`java.io.File*`), `br.ufv.vulnscan.*`, ou a allowlist `com.fasterxml.jackson` — exceção
+registrada para o `LlmDetector` parsear o veredito do LLM (issue #18). O `port/` pode usar
+`java.nio.file.Path` na assinatura do `ReportWriter`. O `DependencyRuleChecker` (teste)
+garante tudo isso.
+
 ## Por que assim
 
 - O experimento IA vs. heurística é uma troca de implementação do `Detector`. A

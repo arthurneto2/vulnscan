@@ -109,6 +109,53 @@ class DependencyRuleTest {
                 () -> "Violações da regra de dependência:\n" + String.join("\n", violations));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"org.openqa.selenium.WebDriver", "picocli.CommandLine",
+            "org.jsoup.Jsoup", "java.net.http.HttpClient", "java.nio.file.Files"})
+    void domainImportandoLibExternaOuRedeDiscoViola(String fqn) throws IOException {
+        write("br/ufv/vulnscan/domain/Foo.java", """
+                package br.ufv.vulnscan.domain;
+
+                import %s;
+
+                class Foo {}
+                """.formatted(fqn));
+
+        assertSingleViolation("Foo.java:3", pacote(fqn));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"com.fasterxml.jackson.databind.ObjectMapper", "java.net.URI",
+            "java.util.regex.Pattern", "java.time.Instant"})
+    void domainImportandoJdkSeguroOuJacksonNaoViola(String fqn) throws IOException {
+        write("br/ufv/vulnscan/domain/Foo.java", """
+                package br.ufv.vulnscan.domain;
+
+                import %s;
+
+                class Foo {}
+                """.formatted(fqn));
+
+        assertEquals(List.of(), DependencyRuleChecker.violations(root));
+    }
+
+    @Test
+    void portUsandoNioFilePathNaoViola() throws IOException {
+        write("br/ufv/vulnscan/port/Bar.java", """
+                package br.ufv.vulnscan.port;
+
+                import java.nio.file.Path;
+
+                interface Bar { void w(Path p); }
+                """);
+
+        assertEquals(List.of(), DependencyRuleChecker.violations(root));
+    }
+
+    private static String pacote(String fqn) {
+        return fqn.substring(0, fqn.lastIndexOf('.'));
+    }
+
     private void assertSingleViolation(String location, String referenced) throws IOException {
         List<String> violations = DependencyRuleChecker.violations(root);
 
