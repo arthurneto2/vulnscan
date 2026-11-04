@@ -2,11 +2,16 @@ package br.ufv.vulnscan.app;
 
 import br.ufv.vulnscan.adapter.browser.SeleniumBrowser;
 import br.ufv.vulnscan.adapter.http.JdkHttpClient;
+import br.ufv.vulnscan.adapter.http.JuiceShopSession;
 import br.ufv.vulnscan.adapter.report.MarkdownReportWriter;
 import br.ufv.vulnscan.domain.detection.Detector;
 import br.ufv.vulnscan.domain.detection.HeuristicDetector;
 import br.ufv.vulnscan.domain.model.Payload;
 import br.ufv.vulnscan.domain.model.VulnType;
+import br.ufv.vulnscan.domain.module.ApiAuthModule;
+import br.ufv.vulnscan.domain.module.ApiSession;
+import br.ufv.vulnscan.domain.module.AuthMode;
+import br.ufv.vulnscan.domain.module.AuthProbe;
 import br.ufv.vulnscan.domain.module.DomXssModule;
 import br.ufv.vulnscan.domain.module.InjectionPoint;
 import br.ufv.vulnscan.domain.module.PayloadFile;
@@ -52,12 +57,25 @@ public final class Container {
     private static final List<StoredXssPoint> STORED_XSS_POINTS = List.of(new StoredXssPoint(
             "/vulnerabilities/xss_s/", guestbookFields(), "mtxMessage", "/vulnerabilities/xss_s/"));
 
+    /** Probes de auth/acesso (Juice Shop): sem token, IDOR e papel indevido. */
+    private static final List<AuthProbe> API_AUTH_PROBES = List.of(
+            new AuthProbe(VulnType.BROKEN_AUTH, "admin-config-sem-token", AuthMode.NONE,
+                    "/rest/admin/application-configuration"),
+            new AuthProbe(VulnType.BROKEN_AUTH, "lista-usuarios-sem-token", AuthMode.NONE, "/api/Users"),
+            new AuthProbe(VulnType.BROKEN_ACCESS_CONTROL, "idor-cesta", AuthMode.USER_TOKEN_OTHER_RESOURCE,
+                    "/rest/basket/{otherId}"),
+            new AuthProbe(VulnType.BROKEN_ACCESS_CONTROL, "lista-usuarios-papel", AuthMode.USER_TOKEN,
+                    "/api/Users"),
+            new AuthProbe(VulnType.BROKEN_ACCESS_CONTROL, "historico-pedidos-papel", AuthMode.USER_TOKEN,
+                    "/rest/order-history/orders"));
+
     private static final String SQLI_PAYLOADS = "/payloads/sqli.txt";
     private static final String XSS_PAYLOADS = "/payloads/xss.txt";
 
     private final HttpClient httpClient;
     private final Detector detector = new HeuristicDetector();
     private final XssBrowser browser = new SeleniumBrowser();
+    private final ApiSession apiSession = new JuiceShopSession();
 
     public Container(Config config) {
         this.httpClient = new JdkHttpClient(config.httpTimeout());
@@ -78,6 +96,7 @@ public final class Container {
                 payloads(XSS_PAYLOADS, VulnType.XSS_REFLECTED), DOM_XSS_POINTS, Container::newMarker));
         modules.put("xss-stored", new StoredXssModule(httpClient, browser, detector,
                 payloads(XSS_PAYLOADS, VulnType.XSS_STORED), STORED_XSS_POINTS, Container::newMarker));
+        modules.put("api", new ApiAuthModule(httpClient, detector, apiSession, API_AUTH_PROBES));
         return modules;
     }
 

@@ -23,7 +23,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
 - [x] **5. `JuiceShopSession` (adaptador).** `JuiceShopSessionTest` com `HttpServer` do JDK:
   `#registraELogaDevolvendoTokenEBid`, `#loginSemTokenLancaIllegalState`. Jackson no parse.
 
-- [ ] **6. `Container` + CLI.** `ContainerTest#apiNosModulosDisponiveis`. `docs/cli.md`.
+- [x] **6. `Container` + CLI.** `ContainerTest#apiNosModulosDisponiveis`. `docs/cli.md`.
 
 - [ ] **7. Checkpoint.** `mvn clean verify` verde. Lab: `scan --module api` no Juice Shop
   (achados de BROKEN_AUTH e BROKEN_ACCESS_CONTROL; negativos não). Marcar a Fase 4 no
