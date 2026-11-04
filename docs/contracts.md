@@ -195,16 +195,19 @@ public final class Scanner {
 // headers (de --header) vão para Target.headers; nulo → vazio.
 public record ScanRequest(java.net.URI target, java.util.List<String> modules,
                           String format, java.nio.file.Path out,
-                          java.util.Map<String, String> headers) {
-    public ScanRequest(java.net.URI target, java.util.List<String> modules,
-                       String format, java.nio.file.Path out) { ... }   // headers vazios
+                          java.util.Map<String, String> headers, String detector) {
+    public ScanRequest(..., java.util.Map<String, String> headers) { ... }  // detector = "heuristic"
+    public ScanRequest(..., java.nio.file.Path out) { ... }                 // headers vazios, "heuristic"
 }
 
 // app/ScanService.java — caso de uso chamado pela CLI.
-//   modules: por nome de --module, na ordem de execução; writers: um por format().
+//   moduleFactories: por nome de --module, na ordem; cada fábrica cria o módulo com o Detector
+//     escolhido. detectors: por nome ("heuristic", "llm"). --detector heuristic|llm|both decide
+//     quais rodam por caso (both = os dois, module-major). writers: um por format().
 //   Erro de uso → InvalidScanRequestException (CLI: saída 1). Erro de execução propaga (saída 2).
 public final class ScanService {
-    public ScanService(java.util.Map<String, VulnModule> modules,
+    public ScanService(java.util.Map<String, java.util.function.Function<Detector, VulnModule>> moduleFactories,
+                       java.util.Map<String, Detector> detectors,
                        java.util.List<ReportWriter> writers) { ... }
     public ScanReport scan(ScanRequest request) { ... }
 }

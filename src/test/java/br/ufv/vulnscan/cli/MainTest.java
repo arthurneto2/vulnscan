@@ -1,10 +1,18 @@
 package br.ufv.vulnscan.cli;
 
+import br.ufv.vulnscan.app.ScanRequest;
 import br.ufv.vulnscan.app.ScanService;
+import br.ufv.vulnscan.domain.model.Evidence;
 import br.ufv.vulnscan.domain.model.Finding;
+import br.ufv.vulnscan.domain.model.HttpRequest;
+import br.ufv.vulnscan.domain.model.HttpResponse;
+import br.ufv.vulnscan.domain.model.Payload;
+import br.ufv.vulnscan.domain.model.Severity;
+import br.ufv.vulnscan.domain.model.Verdict;
 import br.ufv.vulnscan.domain.model.ScanReport;
 import br.ufv.vulnscan.domain.model.Target;
 import br.ufv.vulnscan.domain.model.VulnType;
+import br.ufv.vulnscan.domain.detection.Detector;
 import br.ufv.vulnscan.domain.module.VulnModule;
 import br.ufv.vulnscan.port.ReportWriter;
 import com.sun.net.httpserver.HttpServer;
@@ -25,6 +33,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -205,7 +214,26 @@ class MainTest {
 
     /** Main com um ScanService real montado sobre módulos e writer fake. */
     private Main mainWith(Map<String, VulnModule> modules) {
-        return new Main(() -> new ScanService(modules, List.of(md)));
+        Map<String, Function<Detector, VulnModule>> factories = new LinkedHashMap<>();
+        modules.forEach((name, module) -> factories.put(name, detector -> module));
+        Map<String, Detector> detectors = new LinkedHashMap<>();
+        detectors.put("heuristic", named("heuristic"));
+        detectors.put("llm", named("llm"));
+        return new Main(() -> new ScanService(factories, detectors, List.of(md)));
+    }
+
+    private static Detector named(String name) {
+        return new Detector() {
+            @Override
+            public Verdict judge(Evidence e) {
+                return new Verdict(false, 0.0, "", name);
+            }
+
+            @Override
+            public String name() {
+                return name;
+            }
+        };
     }
 
     private Map<String, VulnModule> registry(String... names) {
@@ -214,6 +242,43 @@ class MainTest {
             modules.put(name, new FakeModule(name, null));
         }
         return modules;
+    }
+
+    /** Main com fábricas que marcam no Finding o nome do detector com que o módulo foi criado. */
+    private Main mainMarking() {
+        Map<String, Function<Detector, VulnModule>> factories = new LinkedHashMap<>();
+        factories.put("sqli", detector -> new MarkingModule(detector));
+        Map<String, Detector> detectors = new LinkedHashMap<>();
+        detectors.put("heuristic", named("heuristic"));
+        detectors.put("llm", named("llm"));
+        return new Main(() -> new ScanService(factories, detectors, List.of(md)));
+    }
+
+    @Test
+    void detectorBothRodaOsDoisPorCaso() {
+        Result result = run(mainMarking(), "scan", "--target", "http://localhost:3000",
+                "--module", "sqli", "--detector", "both");
+
+        assertEquals(0, result.code(), result.err());
+        assertEquals(List.of("heuristic", "llm"),
+                md.written.findings().stream().map(f -> f.verdict().detector()).toList());
+    }
+
+    @Test
+    void detectorPadraoEHeuristic() {
+        Result result = run(mainMarking(), "scan", "--target", "http://localhost:3000", "--module", "sqli");
+
+        assertEquals(0, result.code(), result.err());
+        assertEquals(List.of("heuristic"),
+                md.written.findings().stream().map(f -> f.verdict().detector()).toList());
+    }
+
+    @Test
+    void detectorInvalidoSai1() {
+        Result result = run(mainMarking(), "scan", "--target", "http://localhost:3000", "--detector", "xpto");
+
+        assertEquals(1, result.code());
+        assertTrue(result.err().contains("detector desconhecido"), result.err());
     }
 
     private static Result run(Main main, String... args) {
@@ -227,6 +292,30 @@ class MainTest {
     }
 
     private record Result(int code, String out, String err) {
+    }
+
+    /** Módulo que reporta um Finding cujo Verdict.detector() é o nome do detector recebido. */
+    private final class MarkingModule implements VulnModule {
+        private final Detector detector;
+
+        MarkingModule(Detector detector) {
+            this.detector = detector;
+        }
+
+        @Override
+        public VulnType type() {
+            return VulnType.SQL_INJECTION;
+        }
+
+        @Override
+        public List<Finding> scan(Target target) {
+            Payload payload = new Payload("caso", VulnType.SQL_INJECTION, "v", "d");
+            Evidence evidence = new Evidence(payload,
+                    new HttpRequest("GET", target.baseUrl(), Map.of(), null),
+                    new HttpResponse(200, Map.of(), "", 1));
+            return List.of(new Finding(VulnType.SQL_INJECTION, Severity.HIGH, target, evidence,
+                    new Verdict(true, 0.9, "", detector.name())));
+        }
     }
 
     /** VulnModule fake: anota o nome em {@code ran}; lança {@code failure} se houver. */
@@ -258,9 +347,11 @@ class MainTest {
     /** ReportWriter fake (formato md): guarda o caminho, não grava nada. */
     private static final class FakeWriter implements ReportWriter {
         Path path;
+        ScanReport written;
 
         @Override
         public void write(ScanReport report, Path output) {
+            written = report;
             path = output;
         }
 

@@ -1,6 +1,7 @@
 package br.ufv.vulnscan.app;
 
 import br.ufv.vulnscan.domain.Scanner;
+import br.ufv.vulnscan.domain.detection.Detector;
 import br.ufv.vulnscan.domain.model.ScanReport;
 import br.ufv.vulnscan.domain.model.Target;
 import br.ufv.vulnscan.domain.module.VulnModule;
@@ -8,35 +9,51 @@ import br.ufv.vulnscan.port.ReportWriter;
 
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
- * Aplicação: caso de uso de scan chamado pela CLI. Valida o pedido, escolhe os módulos,
- * roda o Scanner e grava o relatório. Erro de uso vira {@link InvalidScanRequestException}
- * (antes de qualquer requisição); erro de execução propaga e nada é gravado.
+ * Aplicação: caso de uso de scan chamado pela CLI. Valida o pedido, escolhe os módulos e o(s)
+ * detector(es) de {@code --detector}, cria cada módulo com cada detector escolhido, roda o
+ * Scanner e grava o relatório. Erro de uso vira {@link InvalidScanRequestException} (antes de
+ * qualquer requisição); erro de execução propaga e nada é gravado.
  */
 public final class ScanService {
 
-    private final Map<String, VulnModule> modules;
+    private final Map<String, Function<Detector, VulnModule>> moduleFactories;
+    private final Map<String, Detector> detectors;
     private final Map<String, ReportWriter> writers = new LinkedHashMap<>();
 
     /**
-     * @param modules módulos por nome de {@code --module}, na ordem de execução (copiado)
-     * @param writers um por formato, indexados por {@link ReportWriter#format()}
+     * @param moduleFactories por nome de {@code --module}, na ordem de execução; cada fábrica
+     *                        cria o módulo com o {@link Detector} escolhido (copiado)
+     * @param detectors       por nome: {@code heuristic}, {@code llm} (copiado)
+     * @param writers         um por formato, indexados por {@link ReportWriter#format()}
      */
-    public ScanService(Map<String, VulnModule> modules, List<ReportWriter> writers) {
-        this.modules = new LinkedHashMap<>(modules);
+    public ScanService(Map<String, Function<Detector, VulnModule>> moduleFactories,
+                       Map<String, Detector> detectors, List<ReportWriter> writers) {
+        this.moduleFactories = new LinkedHashMap<>(moduleFactories);
+        this.detectors = new LinkedHashMap<>(detectors);
         writers.forEach(writer -> this.writers.put(writer.format(), writer));
     }
 
     public ScanReport scan(ScanRequest request) {
         URI url = validTarget(request.target());
         ReportWriter writer = writerFor(request.format());
-        List<VulnModule> selected = selectModules(request.modules());
+        List<String> modules = selectModules(request.modules());
+        List<Detector> chosen = selectDetectors(request.detector());
 
-        ScanReport report = new Scanner(selected).scan(new Target(url.getAuthority(), url, request.headers()));
+        List<VulnModule> built = new ArrayList<>();
+        for (String name : modules) {
+            for (Detector detector : chosen) {
+                built.add(moduleFactories.get(name).apply(detector));
+            }
+        }
+
+        ScanReport report = new Scanner(built).scan(new Target(url.getAuthority(), url, request.headers()));
         writer.write(report, request.out() != null ? request.out() : Path.of("report." + writer.format()));
         return report;
     }
@@ -60,17 +77,28 @@ public final class ScanService {
         return writer;
     }
 
-    /** Todos se nenhum foi pedido; senão só os pedidos — sempre na ordem do registro, sem repetir. */
-    private List<VulnModule> selectModules(List<String> requested) {
+    /** Nomes dos módulos: todos se nenhum foi pedido; senão só os pedidos — na ordem do registro, sem repetir. */
+    private List<String> selectModules(List<String> requested) {
         for (String name : requested) {
-            if (!modules.containsKey(name)) {
-                throw new InvalidScanRequestException(
-                        "módulo desconhecido: " + name + " (disponíveis: " + String.join(", ", modules.keySet()) + ")");
+            if (!moduleFactories.containsKey(name)) {
+                throw new InvalidScanRequestException("módulo desconhecido: " + name
+                        + " (disponíveis: " + String.join(", ", moduleFactories.keySet()) + ")");
             }
         }
-        return modules.entrySet().stream()
-                .filter(entry -> requested.isEmpty() || requested.contains(entry.getKey()))
-                .map(Map.Entry::getValue)
+        return moduleFactories.keySet().stream()
+                .filter(name -> requested.isEmpty() || requested.contains(name))
                 .toList();
+    }
+
+    /** heuristic → [heuristic]; llm → [llm]; both → [heuristic, llm]. Desconhecido → erro de uso. */
+    private List<Detector> selectDetectors(String choice) {
+        List<String> names = switch (choice) {
+            case "heuristic" -> List.of("heuristic");
+            case "llm" -> List.of("llm");
+            case "both" -> List.of("heuristic", "llm");
+            default -> throw new InvalidScanRequestException(
+                    "detector desconhecido: " + choice + " (use heuristic, llm ou both)");
+        };
+        return names.stream().map(detectors::get).toList();
     }
 }

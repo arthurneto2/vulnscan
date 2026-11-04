@@ -51,6 +51,10 @@ final class ScanCommand implements Callable<Integer> {
             description = "Header enviado em toda requisição ao alvo, ex.: \"Cookie: PHPSESSID=...; security=low\"; repetível.")
     private List<String> headers = new ArrayList<>();
 
+    @Option(names = "--detector", defaultValue = "heuristic", paramLabel = "<estratégia>",
+            description = "Detector do veredito: heuristic, llm ou both. Padrão: ${DEFAULT-VALUE}.")
+    private String detector;
+
     @Option(names = "--format", defaultValue = "md", paramLabel = "<fmt>",
             description = "Formato do relatório. Padrão: ${DEFAULT-VALUE}.")
     private String format;
@@ -69,7 +73,7 @@ final class ScanCommand implements Callable<Integer> {
         }
         try {
             ScanReport report = main.scanService().scan(
-                    new ScanRequest(target, modules, format, output, parseHeaders(headers)));
+                    new ScanRequest(target, modules, format, output, parseHeaders(headers), detector));
             spec.commandLine().getOut().printf("Scan concluído: %d achado(s). Relatório: %s%n",
                     report.findings().size(), output);
             return Main.EXIT_OK;
