@@ -227,6 +227,33 @@ public final class Container {
 }
 ```
 
+## Experimento (`app/benchmark/`, #21)
+
+```java
+// Gabarito carregado de experiments/ground_truth.yaml (ver docs/ground-truth.md).
+record GroundTruth(java.util.List<TargetCases> targets) {
+    record TargetCases(String name, java.net.URI baseUrl, java.util.List<Case> cases) {}
+    record Case(String id, VulnType type, String location, String security, String authMode,
+                boolean vulnerable, String notes) {}
+    static GroundTruth load(java.nio.file.Path yaml) { ... }
+}
+
+enum Outcome { TP, FP, TN, FN }   // Outcome.of(esperado, previsto)
+// ConfusionMatrix: tp/fp/tn/fn + precision/recall/f1/falsePositiveRate (denominador 0 → 0.0).
+
+// Costura de execução de um caso; LabCaseRunner liga caso→módulo (um ponto só) e roda.
+interface CaseRunner {
+    CaseResult run(GroundTruth.Case c, java.net.URI baseUrl, String detectorName);
+    record CaseResult(boolean predictedVulnerable, double confidence, long elapsedMillis) {}
+}
+
+// Roda N vezes; grava run-<n>.csv e summary.csv; devolve detector → (tipo|TOTAL) → ConfusionMatrix.
+public final class BenchmarkRunner {
+    public BenchmarkRunner(GroundTruth gt, CaseRunner runner, java.util.List<String> detectors, int runs) { ... }
+    public java.util.Map<String, java.util.Map<String, ConfusionMatrix>> run(java.nio.file.Path outDir) { ... }
+}
+```
+
 ## Decisões fixadas (não reabrir sem motivo)
 
 - `Detector` devolve sempre um `Verdict` com confiança e justificativa — nunca só um
