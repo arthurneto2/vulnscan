@@ -140,6 +140,30 @@ class HeuristicDetectorTest {
         assertTrue(verdict.vulnerable(), verdict.rationale());
     }
 
+    @Test
+    void xssScriptRemovidoNaoEVulneravel() {
+        String script = "<script>alert('vsx1a2b3c4d')</script>";
+        Verdict verdict = detector.judge(xss(VulnType.XSS_REFLECTED, script,
+                "<pre>Hello alert('vsx1a2b3c4d')</script></pre>", "text/html;charset=utf-8"));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.6, verdict.confidence());
+        assertTrue(verdict.rationale().contains("não refletido"), verdict.rationale());
+    }
+
+    @Test
+    void xssCorpoNuloNaoLanca() {
+        assertFalse(detector.judge(xss(VulnType.XSS_REFLECTED, SVG, null, "text/html")).vulnerable());
+    }
+
+    @Test
+    void xssEmMaiusculasNaoContaComoCru() {
+        Verdict verdict = detector.judge(xss(VulnType.XSS_REFLECTED, SVG,
+                "Hello <SVG ONLOAD=ALERT('VSX1A2B3C4D')>", "text/html"));
+
+        assertFalse(verdict.vulnerable());
+    }
+
     private static Evidence xss(VulnType type, String value, String body, String contentType) {
         Payload payload = new Payload("xss-svg-onload", type, value, "payload de teste");
         HttpRequest request = new HttpRequest("GET",

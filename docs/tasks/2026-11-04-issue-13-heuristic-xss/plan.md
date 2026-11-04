@@ -16,8 +16,10 @@ Verificação: `mvn test -Dtest=HeuristicDetectorTest`.
   `#tipoSemRegrasNaoEVulneravel` para só `BROKEN_*`. Green: ramo de XSS com a regra 1 e o
   negativo padrão.
 
-- [ ] **2. Não refletido.** `#xssScriptRemovidoNaoEVulneravel` (DVWA `medium`, 0.6),
+- [x] **2. Não refletido.** `#xssScriptRemovidoNaoEVulneravel` (DVWA `medium`, 0.6),
   `#xssCorpoNuloNaoLanca`, `#xssEmMaiusculasNaoContaComoCru`.
+  - *Desvio:* passaram de primeira (o negativo padrão veio no green do passo 1). Mordida
+    confirmada trocando a comparação por uma sem diferenciar maiúsculas.
 
 - [ ] **3. Fora de HTML.** `#xssCruEmJsonNaoEVulneravel` (0.5, cita o tipo).
 
