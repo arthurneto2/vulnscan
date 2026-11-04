@@ -4,7 +4,9 @@ import br.ufv.vulnscan.domain.model.Finding;
 import br.ufv.vulnscan.domain.model.ScanReport;
 import br.ufv.vulnscan.domain.model.Severity;
 import br.ufv.vulnscan.domain.model.Target;
+import br.ufv.vulnscan.domain.model.Verdict;
 import br.ufv.vulnscan.domain.model.VulnType;
+import br.ufv.vulnscan.domain.detection.Detector;
 import br.ufv.vulnscan.domain.module.VulnModule;
 import br.ufv.vulnscan.port.ReportWriter;
 import org.junit.jupiter.api.Test;
@@ -18,11 +20,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Testes do caso de uso de scan com módulos e writer fake, sem rede nem disco. */
@@ -35,6 +39,8 @@ class ScanServiceTest {
 
     private final List<String> ran = new ArrayList<>();
     private final FakeWriter md = new FakeWriter("md");
+    private final FakeDetector heuristic = new FakeDetector("heuristic");
+    private final FakeDetector llm = new FakeDetector("llm");
 
     @Test
     void gravaComOWriterDoFormatoEDevolveORelatorio() {
@@ -143,12 +149,75 @@ class ScanServiceTest {
         assertNull(md.written, "nada deveria ser gravado");
     }
 
+    @Test
+    void heuristicUsaSoHeuristico() {
+        List<Finding> findings = serviceMarcandoDetector("sqli")
+                .scan(new ScanRequest(LAB, List.of(), "md", dir.resolve("r.md"), Map.of(), "heuristic"))
+                .findings();
+
+        assertEquals(List.of("heuristic"), findings.stream().map(f -> f.verdict().detector()).toList());
+    }
+
+    @Test
+    void llmUsaSoLlm() {
+        List<Finding> findings = serviceMarcandoDetector("sqli")
+                .scan(new ScanRequest(LAB, List.of(), "md", dir.resolve("r.md"), Map.of(), "llm"))
+                .findings();
+
+        assertEquals(List.of("llm"), findings.stream().map(f -> f.verdict().detector()).toList());
+    }
+
+    @Test
+    void bothRodaOsDoisPorCaso() {
+        List<Finding> findings = serviceMarcandoDetector("sqli")
+                .scan(new ScanRequest(LAB, List.of(), "md", dir.resolve("r.md"), Map.of(), "both"))
+                .findings();
+
+        assertEquals(List.of("heuristic", "llm"), findings.stream().map(f -> f.verdict().detector()).toList());
+    }
+
+    @Test
+    void bothEhModuleMajor() {
+        List<Finding> findings = serviceMarcandoDetector("a", "b")
+                .scan(new ScanRequest(LAB, List.of(), "md", dir.resolve("r.md"), Map.of(), "both"))
+                .findings();
+
+        assertEquals(List.of("a:heuristic", "a:llm", "b:heuristic", "b:llm"),
+                findings.stream().map(f -> f.evidence().payload().id()).toList());
+    }
+
+    @Test
+    void detectorDesconhecidoLancaInvalidScanRequest() {
+        InvalidScanRequestException e = assertThrows(InvalidScanRequestException.class,
+                () -> serviceMarcandoDetector("sqli")
+                        .scan(new ScanRequest(LAB, List.of(), "md", null, Map.of(), "xpto")));
+        assertTrue(e.getMessage().contains("detector desconhecido"), e.getMessage());
+    }
+
     private ScanRequest request(List<String> modules) {
         return new ScanRequest(LAB, modules, "md", dir.resolve("report.md"));
     }
 
     private ScanService service(Map<String, VulnModule> modules) {
-        return new ScanService(modules, List.of(md));
+        Map<String, Function<Detector, VulnModule>> factories = new LinkedHashMap<>();
+        modules.forEach((name, module) -> factories.put(name, detector -> module));
+        return new ScanService(factories, detectors(), List.of(md));
+    }
+
+    /** Serviço cujas fábricas criam um módulo que reporta um Finding marcado com o nome do detector. */
+    private ScanService serviceMarcandoDetector(String... moduleNames) {
+        Map<String, Function<Detector, VulnModule>> factories = new LinkedHashMap<>();
+        for (String name : moduleNames) {
+            factories.put(name, detector -> new DetectorMarkingModule(name, detector));
+        }
+        return new ScanService(factories, detectors(), List.of(md));
+    }
+
+    private Map<String, Detector> detectors() {
+        Map<String, Detector> detectors = new LinkedHashMap<>();
+        detectors.put("heuristic", heuristic);
+        detectors.put("llm", llm);
+        return detectors;
     }
 
     /** Registro ordenado a, b, c — a ordem em que o Container entregaria. */
@@ -190,6 +259,53 @@ class ScanServiceTest {
                 throw failure;
             }
             return findings;
+        }
+    }
+
+    /** Detector fake identificado por nome; não é chamado pelos módulos fake (eles usam o nome). */
+    private static final class FakeDetector implements Detector {
+        private final String name;
+
+        FakeDetector(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public Verdict judge(br.ufv.vulnscan.domain.model.Evidence evidence) {
+            return new Verdict(false, 0.0, "", name);
+        }
+
+        @Override
+        public String name() {
+            return name;
+        }
+    }
+
+    /** Módulo fake que reporta um Finding marcado com o nome do detector com que foi criado. */
+    private final class DetectorMarkingModule implements VulnModule {
+        private final String moduleName;
+        private final Detector detector;
+
+        DetectorMarkingModule(String moduleName, Detector detector) {
+            this.moduleName = moduleName;
+            this.detector = detector;
+        }
+
+        @Override
+        public VulnType type() {
+            return VulnType.SQL_INJECTION;
+        }
+
+        @Override
+        public List<Finding> scan(Target target) {
+            ran.add(moduleName);
+            var payload = new br.ufv.vulnscan.domain.model.Payload(
+                    moduleName + ":" + detector.name(), VulnType.SQL_INJECTION, "v", "d");
+            var evidence = new br.ufv.vulnscan.domain.model.Evidence(payload,
+                    new br.ufv.vulnscan.domain.model.HttpRequest("GET", target.baseUrl(), Map.of(), null),
+                    new br.ufv.vulnscan.domain.model.HttpResponse(200, Map.of(), "", 1));
+            return List.of(new Finding(VulnType.SQL_INJECTION, Severity.HIGH, target, evidence,
+                    new Verdict(true, 0.9, "", detector.name())));
         }
     }
 

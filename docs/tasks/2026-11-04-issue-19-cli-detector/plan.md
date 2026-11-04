@@ -6,15 +6,15 @@ Cada passo: teste → mínimo → refactor.
 
 ## Passos
 
-- [ ] **1. `ScanRequest` com detector.** `ScanRequestTest` (ou no `ScanServiceTest`):
+- [x] **1. `ScanRequest` com detector.** `ScanRequestTest` (ou no `ScanServiceTest`):
   construtor de 4/5 args → `"heuristic"`; nulo/vazio → `"heuristic"`. Atualizar os usos.
 
-- [ ] **2. `ScanService` com fábricas + detectores.** Reescrever o construtor e o `scan`.
+- [x] **2. `ScanService` com fábricas + detectores.** Reescrever o construtor e o `scan`.
   `ScanServiceTest`: `#heuristicUsaSoHeuristico`, `#llmUsaSoLlm`,
   `#bothRodaOsDoisPorCaso`, `#detectorDesconhecidoLancaInvalid`,
   `#ordemModuleMajor`. Adaptar os testes existentes às fábricas.
 
-- [ ] **3. `Container` com detectores e fábricas.** `ContainerTest#detectoresHeuristicELlm`
+- [x] **3. `Container` com detectores e fábricas.** `ContainerTest#detectoresHeuristicELlm`
   (ex.: `--detector llm` roda contra o servidor em processo e grava relatório com veredito
   `llm`). Ajustar o que montava `ScanService(modules, writers)`.
 

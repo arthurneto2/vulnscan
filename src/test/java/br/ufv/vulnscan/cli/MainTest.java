@@ -5,6 +5,7 @@ import br.ufv.vulnscan.domain.model.Finding;
 import br.ufv.vulnscan.domain.model.ScanReport;
 import br.ufv.vulnscan.domain.model.Target;
 import br.ufv.vulnscan.domain.model.VulnType;
+import br.ufv.vulnscan.domain.detection.Detector;
 import br.ufv.vulnscan.domain.module.VulnModule;
 import br.ufv.vulnscan.port.ReportWriter;
 import com.sun.net.httpserver.HttpServer;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -205,8 +207,25 @@ class MainTest {
 
     /** Main com um ScanService real montado sobre módulos e writer fake. */
     private Main mainWith(Map<String, VulnModule> modules) {
-        return new Main(() -> new ScanService(modules, List.of(md)));
+        Map<String, Function<Detector, VulnModule>> factories = new LinkedHashMap<>();
+        modules.forEach((name, module) -> factories.put(name, detector -> module));
+        Map<String, Detector> detectors = new LinkedHashMap<>();
+        detectors.put("heuristic", NOOP_DETECTOR);
+        detectors.put("llm", NOOP_DETECTOR);
+        return new Main(() -> new ScanService(factories, detectors, List.of(md)));
     }
+
+    private static final Detector NOOP_DETECTOR = new Detector() {
+        @Override
+        public br.ufv.vulnscan.domain.model.Verdict judge(br.ufv.vulnscan.domain.model.Evidence e) {
+            return new br.ufv.vulnscan.domain.model.Verdict(false, 0.0, "", "noop");
+        }
+
+        @Override
+        public String name() {
+            return "noop";
+        }
+    };
 
     private Map<String, VulnModule> registry(String... names) {
         Map<String, VulnModule> modules = new LinkedHashMap<>();

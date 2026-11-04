@@ -3,9 +3,11 @@ package br.ufv.vulnscan.app;
 import br.ufv.vulnscan.adapter.browser.SeleniumBrowser;
 import br.ufv.vulnscan.adapter.http.JdkHttpClient;
 import br.ufv.vulnscan.adapter.http.JuiceShopSession;
+import br.ufv.vulnscan.adapter.llm.OllamaClient;
 import br.ufv.vulnscan.adapter.report.MarkdownReportWriter;
 import br.ufv.vulnscan.domain.detection.Detector;
 import br.ufv.vulnscan.domain.detection.HeuristicDetector;
+import br.ufv.vulnscan.domain.detection.LlmDetector;
 import br.ufv.vulnscan.domain.model.Payload;
 import br.ufv.vulnscan.domain.model.VulnType;
 import br.ufv.vulnscan.domain.module.ApiAuthModule;
@@ -31,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.UUID;
 
 /**
@@ -73,31 +76,41 @@ public final class Container {
     private static final String XSS_PAYLOADS = "/payloads/xss.txt";
 
     private final HttpClient httpClient;
-    private final Detector detector = new HeuristicDetector();
     private final XssBrowser browser = new SeleniumBrowser();
     private final ApiSession apiSession = new JuiceShopSession();
+    private final Config config;
 
     public Container(Config config) {
+        this.config = config;
         this.httpClient = new JdkHttpClient(config.httpTimeout());
     }
 
     public ScanService scanService() {
-        return new ScanService(modules(), writers());
+        return new ScanService(moduleFactories(), detectors(), writers());
     }
 
-    /** Módulos por nome de {@code --module}, na ordem de execução. */
-    private Map<String, VulnModule> modules() {
-        Map<String, VulnModule> modules = new LinkedHashMap<>();
-        modules.put("sqli", new SqlInjectionModule(httpClient, detector,
-                payloads(SQLI_PAYLOADS, VulnType.SQL_INJECTION), SQLI_POINTS));
-        modules.put("xss", new XssModule(httpClient, detector,
-                payloads(XSS_PAYLOADS, VulnType.XSS_REFLECTED), XSS_POINTS, Container::newMarker));
-        modules.put("xss-dom", new DomXssModule(browser, detector,
-                payloads(XSS_PAYLOADS, VulnType.XSS_REFLECTED), DOM_XSS_POINTS, Container::newMarker));
-        modules.put("xss-stored", new StoredXssModule(httpClient, browser, detector,
-                payloads(XSS_PAYLOADS, VulnType.XSS_STORED), STORED_XSS_POINTS, Container::newMarker));
-        modules.put("api", new ApiAuthModule(httpClient, detector, apiSession, API_AUTH_PROBES));
-        return modules;
+    /** Detectores por nome: heurístico (puro) e LLM (Ollama com o modelo fixado em Config). */
+    private Map<String, Detector> detectors() {
+        Map<String, Detector> detectors = new LinkedHashMap<>();
+        detectors.put("heuristic", new HeuristicDetector());
+        detectors.put("llm", new LlmDetector(
+                new OllamaClient(httpClient, config.ollamaBaseUrl(), config.ollamaModel())));
+        return detectors;
+    }
+
+    /** Fábricas de módulo por nome de {@code --module}, na ordem; cada uma recebe o Detector escolhido. */
+    private Map<String, Function<Detector, VulnModule>> moduleFactories() {
+        List<Payload> sqli = payloads(SQLI_PAYLOADS, VulnType.SQL_INJECTION);
+        List<Payload> xssReflected = payloads(XSS_PAYLOADS, VulnType.XSS_REFLECTED);
+        List<Payload> xssStored = payloads(XSS_PAYLOADS, VulnType.XSS_STORED);
+        Map<String, Function<Detector, VulnModule>> factories = new LinkedHashMap<>();
+        factories.put("sqli", d -> new SqlInjectionModule(httpClient, d, sqli, SQLI_POINTS));
+        factories.put("xss", d -> new XssModule(httpClient, d, xssReflected, XSS_POINTS, Container::newMarker));
+        factories.put("xss-dom", d -> new DomXssModule(browser, d, xssReflected, DOM_XSS_POINTS, Container::newMarker));
+        factories.put("xss-stored", d -> new StoredXssModule(httpClient, browser, d, xssStored,
+                STORED_XSS_POINTS, Container::newMarker));
+        factories.put("api", d -> new ApiAuthModule(httpClient, d, apiSession, API_AUTH_PROBES));
+        return factories;
     }
 
     private static Map<String, String> guestbookFields() {
