@@ -1,34 +1,101 @@
-# Gabarito inicial (exemplo). Expanda com mais casos — positivos E negativos — por tipo.
-# Esquema completo e regras em docs/ground-truth.md.
-# Os ids de location abaixo são pontos de partida; confirme-os contra o alvo real.
+# Gabarito do experimento: verdade conhecida por caso (ver docs/ground-truth.md).
+# Validado no laboratório em 2026-11-04 (DVWA e Juice Shop recém-subidos via Docker).
+# Positivos E negativos dos três tipos; ~metade negativos por tipo. O campo opcional
+# `security` distingue níveis do DVWA no mesmo location (low vs impossible).
 
 targets:
   - name: dvwa
     base_url: http://localhost:8080
     cases:
-      - id: dvwa-sqli-id-param
+      - id: dvwa-sqli-low
         type: SQL_INJECTION
-        location: "/vulnerabilities/sqli/?id="
+        location: "/vulnerabilities/sqli/?Submit=Submit&id="
+        security: low
         vulnerable: true
-        notes: "campo id injetável no nível de segurança 'low'"
+        notes: "campo id injetável no nível low (erro de MySQL/MariaDB na resposta)"
 
-      - id: dvwa-sqli-high-level
+      - id: dvwa-sqli-impossible
         type: SQL_INJECTION
-        location: "/vulnerabilities/sqli/?id="
+        location: "/vulnerabilities/sqli/?Submit=Submit&id="
+        security: impossible
         vulnerable: false
-        notes: "caso negativo — mesmo campo no nível 'impossible' (com prepared statements)"
+        notes: "negativo — mesmo campo no nível impossible (prepared statements)"
+
+      - id: dvwa-xss-reflected-low
+        type: XSS_REFLECTED
+        location: "/vulnerabilities/xss_r/?name="
+        security: low
+        vulnerable: true
+        notes: "reflete o parâmetro name cru (HTML) no nível low"
+
+      - id: dvwa-xss-reflected-impossible
+        type: XSS_REFLECTED
+        location: "/vulnerabilities/xss_r/?name="
+        security: impossible
+        vulnerable: false
+        notes: "negativo — mesmo campo no nível impossible (escapa a entrada)"
+
+      - id: dvwa-xss-stored-low
+        type: XSS_STORED
+        location: "/vulnerabilities/xss_s/"
+        security: low
+        vulnerable: true
+        notes: "guestbook grava a mensagem crua no nível low; o navegador executa o payload"
+
+      - id: dvwa-xss-stored-impossible
+        type: XSS_STORED
+        location: "/vulnerabilities/xss_s/"
+        security: impossible
+        vulnerable: false
+        notes: "negativo — guestbook sanitiza a mensagem no nível impossible"
 
   - name: juice-shop
     base_url: http://localhost:3000
     cases:
-      - id: js-xss-search
+      - id: js-sqli-search
+        type: SQL_INJECTION
+        location: "/rest/products/search?q="
+        vulnerable: true
+        notes: "busca injetável (SQLITE_ERROR com aspas após valor)"
+
+      - id: js-xss-dom-search
         type: XSS_REFLECTED
         location: "/#/search?q="
         vulnerable: true
-        notes: "parâmetro de busca reflete sem sanitizar"
+        notes: "XSS de DOM — o q volta no DOM renderizado (módulo xss-dom, via navegador)"
+
+      - id: js-xss-redirect-escaped
+        type: XSS_REFLECTED
+        location: "/redirect?to="
+        vulnerable: false
+        notes: "negativo — reflete o valor escapado (&lt; &gt;), não executa"
+
+      - id: js-auth-admin-config
+        type: BROKEN_AUTH
+        location: "/rest/admin/application-configuration"
+        vulnerable: true
+        notes: "endpoint de config servido sem token (200 com JSON de configuração)"
+
+      - id: js-auth-users-protected
+        type: BROKEN_AUTH
+        location: "/api/Users"
+        vulnerable: false
+        notes: "negativo — sem token devolve 401 (protegido)"
 
       - id: js-idor-basket
         type: BROKEN_ACCESS_CONTROL
-        location: "/rest/basket/{id}"
+        location: "/rest/basket/{otherId}"
         vulnerable: true
-        notes: "acessa cesta de outro usuário trocando o id (IDOR)"
+        notes: "IDOR — com token de um usuário acessa a cesta de outro id (200)"
+
+      - id: js-bac-users-role
+        type: BROKEN_ACCESS_CONTROL
+        location: "/api/Users"
+        vulnerable: true
+        notes: "papel indevido — usuário comum lista todos os usuários (200)"
+
+      - id: js-bac-order-history
+        type: BROKEN_ACCESS_CONTROL
+        location: "/rest/order-history/orders"
+        vulnerable: false
+        notes: "negativo — usuário comum recebe 403 (papel de admin exigido)"
