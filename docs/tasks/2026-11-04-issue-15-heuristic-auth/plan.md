@@ -17,7 +17,7 @@ Verificação: `mvn test -Dtest=HeuristicDetectorTest`.
   de auth) para não restar nenhum tipo sem regra. Green: ramo de auth com regras 1 e 3
   (corpo não vazio) e o inconclusivo padrão.
 
-- [ ] **2. Corpo vazio no 2xx.** `#respostaVaziaNaoEVulneravel` (parametrizado `""`, `{}`,
+- [x] **2. Corpo vazio no 2xx.** `#respostaVaziaNaoEVulneravel` (parametrizado `""`, `{}`,
   `[]`, corpo nulo). Green: regra 3 do corpo trivial.
 
 - [ ] **3. Redirecionado para login.** `#redirecionadoParaLoginNaoEVulneravel` (302 +

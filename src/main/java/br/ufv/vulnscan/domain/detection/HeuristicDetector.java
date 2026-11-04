@@ -105,6 +105,11 @@ public final class HeuristicDetector implements Detector {
             return new Verdict(false, 0.85, "acesso negado como esperado (status " + status + ")", NAME);
         }
         if (status >= 200 && status < 300) {
+            String body = Objects.requireNonNullElse(evidence.response().body(), "").strip();
+            if (body.isEmpty() || body.equals("{}") || body.equals("[]")) {
+                return new Verdict(false, 0.5,
+                        "resposta " + status + " com corpo vazio: sem dado exposto", NAME);
+            }
             return new Verdict(true, 0.7,
                     "acesso concedido (status " + status + ") onde se esperava 401/403", NAME);
         }

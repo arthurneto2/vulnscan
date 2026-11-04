@@ -233,6 +233,21 @@ class HeuristicDetectorTest {
         return new Evidence(payload, request, new HttpResponse(200, headers, body, 5));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   ", "{}", "[]", " {} "})
+    void respostaVaziaNaoEVulneravel(String body) {
+        Verdict verdict = detector.judge(auth(VulnType.BROKEN_AUTH, 200, body, Map.of()));
+
+        assertFalse(verdict.vulnerable(), "corpo: [" + body + "]");
+        assertEquals(0.5, verdict.confidence());
+        assertTrue(verdict.rationale().contains("corpo vazio"), verdict.rationale());
+    }
+
+    @Test
+    void corpoNuloNoAcessoNaoLanca() {
+        assertFalse(detector.judge(auth(VulnType.BROKEN_ACCESS_CONTROL, 200, null, Map.of())).vulnerable());
+    }
+
     private static Evidence auth(VulnType type, int status, String body, Map<String, String> headers) {
         Payload payload = new Payload("auth-caso", type, "sem-token", "payload de teste");
         HttpRequest request = new HttpRequest("GET",
