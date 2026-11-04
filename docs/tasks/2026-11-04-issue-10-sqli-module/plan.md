@@ -39,7 +39,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   `#headerSemDoisPontosSai1`, `#headerRepetidoJuntaPorVirgula`. Atualizar `docs/cli.md`.
   Verificar: `mvn test -Dtest=MainTest`.
 
-- [ ] **9. `Container` com `sqli`; remove `smoke`.** `ContainerTest`:
+- [x] **9. `Container` com `sqli`; remove `smoke`.** `ContainerTest`:
   `#moduloSqliDetectaErroMysqlNoPontoDoDvwa` (servidor em processo devolve erro de MySQL
   em `/vulnerabilities/sqli/`), `#semModulosRodaSqli`, `#moduloSmokeNaoExisteMais`.
   Ajustar `MainTest#scanGravaRelatorioESai0`. Apagar `SmokeModule` e `SmokeModuleTest`.

@@ -44,11 +44,11 @@ class MainTest {
     @Test
     void scanGravaRelatorioESai0() throws IOException {
         Path out = dir.resolve("r.md");
-        // Container real: o módulo de fumaça faz um GET num servidor em processo, não no lab.
+        // Container real: o módulo sqli ataca um servidor em processo (sem falha), não o lab.
         List<String> received = new CopyOnWriteArrayList<>();
         HttpServer server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         server.createContext("/", exchange -> {
-            received.add(exchange.getRequestMethod() + " " + exchange.getRequestURI());
+            received.add(exchange.getRequestMethod() + " " + exchange.getRequestURI().getPath());
             exchange.sendResponseHeaders(200, -1);
             exchange.close();
         });
@@ -59,7 +59,7 @@ class MainTest {
             Result result = run(new Main(), "scan", "--target", target, "--out", out.toString());
 
             assertEquals(0, result.code(), result.err());
-            assertEquals(List.of("GET /"), received);
+            assertTrue(received.contains("GET /vulnerabilities/sqli/"), "recebidas: " + received);
             assertTrue(Files.readString(out).contains("Nenhum achado."));
             assertTrue(result.out().contains("Scan concluído: 0 achado(s). Relatório: " + out), result.out());
         } finally {

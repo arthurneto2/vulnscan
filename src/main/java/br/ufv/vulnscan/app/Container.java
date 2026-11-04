@@ -2,22 +2,41 @@ package br.ufv.vulnscan.app;
 
 import br.ufv.vulnscan.adapter.http.JdkHttpClient;
 import br.ufv.vulnscan.adapter.report.MarkdownReportWriter;
-import br.ufv.vulnscan.domain.module.SmokeModule;
+import br.ufv.vulnscan.domain.detection.Detector;
+import br.ufv.vulnscan.domain.detection.HeuristicDetector;
+import br.ufv.vulnscan.domain.model.Payload;
+import br.ufv.vulnscan.domain.model.VulnType;
+import br.ufv.vulnscan.domain.module.InjectionPoint;
+import br.ufv.vulnscan.domain.module.PayloadFile;
+import br.ufv.vulnscan.domain.module.SqlInjectionModule;
 import br.ufv.vulnscan.domain.module.VulnModule;
 import br.ufv.vulnscan.port.HttpClient;
 import br.ufv.vulnscan.port.ReportWriter;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Aplicação: raiz de composição. Instancia os adaptadores e injeta nos módulos à mão,
- * sem framework de DI. Único lugar que conhece as implementações concretas.
+ * sem framework de DI. Único lugar que conhece as implementações concretas e que lê os
+ * arquivos de payloads do classpath.
  */
 public final class Container {
 
+    /** Pontos de SQLi conhecidos do laboratório: DVWA (campo id) e Juice Shop (busca). */
+    private static final List<InjectionPoint> SQLI_POINTS = List.of(
+            new InjectionPoint("/vulnerabilities/sqli/?Submit=Submit", "id"),
+            new InjectionPoint("/rest/products/search", "q"));
+
+    private static final String SQLI_PAYLOADS = "/payloads/sqli.txt";
+
     private final HttpClient httpClient;
+    private final Detector detector = new HeuristicDetector();
 
     public Container(Config config) {
         this.httpClient = new JdkHttpClient(config.httpTimeout());
@@ -27,18 +46,27 @@ public final class Container {
         return new ScanService(modules(), writers());
     }
 
-    /**
-     * Módulos por nome de {@code --module}, na ordem de execução. Cada módulo recebe o
-     * {@link #httpClient} (e o Detector) por construtor. O {@code smoke} é temporário: sai
-     * quando entrar o primeiro módulo real (SqlInjectionModule, issue #10).
-     */
+    /** Módulos por nome de {@code --module}, na ordem de execução. */
     private Map<String, VulnModule> modules() {
         Map<String, VulnModule> modules = new LinkedHashMap<>();
-        modules.put("smoke", new SmokeModule(httpClient));
+        modules.put("sqli", new SqlInjectionModule(httpClient, detector,
+                payloads(SQLI_PAYLOADS, VulnType.SQL_INJECTION), SQLI_POINTS));
         return modules;
     }
 
     private List<ReportWriter> writers() {
         return List.of(new MarkdownReportWriter());
+    }
+
+    /** Lê um arquivo de payloads do classpath; ausente ou ilegível é erro de montagem. */
+    private static List<Payload> payloads(String resource, VulnType type) {
+        try (InputStream in = Container.class.getResourceAsStream(resource)) {
+            if (in == null) {
+                throw new IllegalStateException("arquivo de payloads ausente no classpath: " + resource);
+            }
+            return PayloadFile.parse(new String(in.readAllBytes(), StandardCharsets.UTF_8), type);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }
