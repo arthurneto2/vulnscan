@@ -49,6 +49,14 @@ No DVWA, o mesmo `location` é vulnerável ou não conforme o nível (`low`, `me
 o usa para montar a sessão (cookie `security=<nível>`). Ausente, vale o nível corrente do
 alvo. No Juice Shop não se aplica.
 
+## Campo `auth_mode` (opcional, casos `BROKEN_*`)
+
+Para os casos de autenticação/autorização, `auth_mode` diz como o `ApiAuthModule` monta a
+requisição: `NONE` (sem token), `USER_TOKEN` (token de usuário comum — papel indevido) ou
+`USER_TOKEN_OTHER_RESOURCE` (token de um usuário acessando o recurso de outro — IDOR;
+`{otherId}` no `location`). Distingue casos de mesmo `location` (ex.: `/api/Users` sem token
+× com token comum). Ausente = `NONE`.
+
 ## Regras para montar um bom gabarito
 
 - **Inclua casos negativos.** Um gabarito só com casos vulneráveis não mede falso
