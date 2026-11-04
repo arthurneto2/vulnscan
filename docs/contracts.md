@@ -166,7 +166,9 @@ public interface HttpClient {
     HttpResponse send(HttpRequest request);
 }
 
-// port/LlmClient.java  → adapter: OllamaClient (POST localhost:11434)
+// port/LlmClient.java  → adapter: OllamaClient (POST {ollamaBaseUrl}/api/generate; monta o
+//   corpo {model,prompt,stream:false,format:"json",options.temperature} e devolve o campo
+//   "response" cru; status != 2xx ou sem "response" → IllegalStateException)
 // Recebe um prompt pronto e devolve o texto cru do modelo (espera-se JSON; ver
 // docs/llm-contract.md). Quem monta o prompt e faz o parse é o LlmDetector.
 public interface LlmClient {
