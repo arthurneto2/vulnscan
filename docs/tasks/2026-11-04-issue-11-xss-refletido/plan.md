@@ -33,7 +33,17 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   (servidor em processo grava as queries), `#semModulosRodaSqliEXss`. Green: registro,
   pontos e marcador `vsx` + 8 hex.
 
-- [ ] **7. Checkpoint.** `mvn clean verify` verde. Lab: `scan --module xss` no DVWA e no
+- [x] **7. Checkpoint.** `mvn clean verify` verde. Lab: `scan --module xss` no DVWA e no
   Juice Shop (saída 0, 0 achados até a #13) e `curl` confirmando a reflexão crua no DVWA
   `low`. Marcar na Fase 3 do `build-order` o item do `XssModule` (refletido). Marcar
   passos aqui, commits, push.
+  - Feito: `mvn clean verify` com 144 testes verdes (inclui `DependencyRuleTest`).
+  - Lab (2026-11-04): `scan --module xss` no DVWA `low` (com `--header "Cookie: ..."`) e no
+    Juice Shop → saída 0, 0 achados (sem regras de XSS até a #13); `scan --module sqli` no
+    DVWA continua com 1 achado. `curl` com marcador `vsx…`: DVWA `low` devolve
+    `<svg onload=alert('vsx…')>` cru; Juice Shop `/redirect` devolve escapado
+    (`&lt;svg ...&gt;`).
+
+## Desvios do plano
+
+- Nenhum no código. Decisão registrada na spec: XSS de DOM do Juice Shop vai para a #12.
