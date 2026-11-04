@@ -18,7 +18,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
 - [x] **3. `sqli.txt`.** `PayloadFileTest#arquivoSqliDoClasspathTemAspasBooleanoETemporal`
   (lê `/payloads/sqli.txt` via `getResourceAsStream`). Green: criar o arquivo.
 
-- [ ] **4. `InjectionPoint` + envio de requisições.** `SqlInjectionModuleTest` com
+- [x] **4. `InjectionPoint` + envio de requisições.** `SqlInjectionModuleTest` com
   `HttpClient` fake que grava e `Detector` fake configurável:
   `#enviaGetComPayloadCodificadoNoParametro`, `#respeitaQueryFixaDoPath`,
   `#enviaHeadersDoAlvo`, `#typeESqlInjection`.
