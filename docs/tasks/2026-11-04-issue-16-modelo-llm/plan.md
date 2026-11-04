@@ -9,8 +9,10 @@ Spec: `spec.md` nesta pasta. Branch: `issue-16-modelo-llm`.
   ollamaModel)` com constantes e `defaults()` atualizado. Ajustar `docs/contracts.md`.
   Verificar: `mvn test -Dtest=ConfigTest`.
 
-- [ ] **2. Documentação.** `docs/llm-contract.md` e `README.md` com a tag fixada e o
+- [x] **2. Documentação.** `docs/llm-contract.md` e `README.md` com a tag fixada e o
   placeholder do digest; remover "ou qwen2.5" do contrato.
 
-- [ ] **3. Checkpoint.** `mvn clean verify` verde. Marcar passos aqui, commits, push.
+- [x] **3. Checkpoint.** `mvn clean verify` verde. Marcar passos aqui, commits, push.
   (Sem checkpoint de lab: é issue de decisão/config.)
+  - Feito: `mvn clean verify` verde (os 3 do `SeleniumBrowserTest` pulados no ambiente
+    padrão). `ConfigTest` cobre a decisão; digest fica como placeholder até o `ollama pull`.
