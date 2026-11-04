@@ -139,6 +139,23 @@ public final class StoredXssModule implements VulnModule {
                            java.util.List<StoredXssPoint> points,
                            java.util.function.Supplier<String> markers) { ... }
 }
+
+// --- API REST auth/autorização (#14). ApiSession é interface do PRÓPRIO módulo (não é
+// porta): isola o login do alvo (parse de JSON) do domínio. Adaptador: adapter/http/JuiceShopSession.
+public interface ApiSession {
+    AuthSession authenticate(Target target);
+    record AuthSession(String token, String ownResourceId) {}   // não nulos
+}
+
+enum AuthMode { NONE, USER_TOKEN, USER_TOKEN_OTHER_RESOURCE }
+record AuthProbe(VulnType type, String name, AuthMode mode, String pathTemplate) {}
+
+// Cada probe é um GET indevido; positivo → Finding HIGH do tipo do probe (não encerra os
+// outros). Login uma vez, só se algum probe pede token. type() = BROKEN_AUTH (interface).
+public final class ApiAuthModule implements VulnModule {
+    public ApiAuthModule(HttpClient http, Detector detector, ApiSession session,
+                         java.util.List<AuthProbe> probes) { ... }
+}
 ```
 
 ## Portas (`port/`) — a fronteira com o mundo externo
