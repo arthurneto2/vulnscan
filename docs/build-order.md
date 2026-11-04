@@ -86,7 +86,7 @@ seguir.
 
 ## Fase 7 — Acabamento
 
-- [ ] `JsonReportWriter` e `HtmlReportWriter`.
+- [x] `JsonReportWriter` e `HtmlReportWriter`.
 - [ ] README completo e evidências de execução para o relatório.
 - [ ] Revisão da regra de dependência (nada de `adapter` importado em `domain`/`port`).
 

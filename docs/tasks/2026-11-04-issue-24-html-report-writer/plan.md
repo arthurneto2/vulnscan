@@ -15,5 +15,7 @@ Cada passo: teste → mínimo → refactor.
 - [x] **3. Truncamento + I/O.** `#corpoGrandeTruncado`, `#criaDiretorioPaiEUtf8`,
   `#erroDeIoViraUnchecked`. Green: truncar corpos; `Files.createDirectories`; UTF-8.
 
-- [ ] **4. Container + checkpoint.** Registrar `html`; `ContainerTest#formatoHtmlGravaHtml`.
+- [x] **4. Container + checkpoint.** Registrar `html`; `ContainerTest#formatoHtmlGravaHtml`.
   `docs/contracts.md`. `mvn clean verify` verde. Marcar passos, commits, push.
+  - Feito: `mvn clean verify` com 271 testes verdes; `HtmlReportWriterTest` (7, @TempDir) e
+    `ContainerTest#formatoHtmlGravaHtml`. `--format html` registrado; md/json/html no Container.

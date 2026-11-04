@@ -4,6 +4,7 @@ import br.ufv.vulnscan.adapter.browser.SeleniumBrowser;
 import br.ufv.vulnscan.adapter.http.JdkHttpClient;
 import br.ufv.vulnscan.adapter.http.JuiceShopSession;
 import br.ufv.vulnscan.adapter.llm.OllamaClient;
+import br.ufv.vulnscan.adapter.report.HtmlReportWriter;
 import br.ufv.vulnscan.adapter.report.JsonReportWriter;
 import br.ufv.vulnscan.adapter.report.MarkdownReportWriter;
 import br.ufv.vulnscan.domain.detection.Detector;
@@ -138,7 +139,7 @@ public final class Container {
     }
 
     private List<ReportWriter> writers() {
-        return List.of(new MarkdownReportWriter(), new JsonReportWriter());
+        return List.of(new MarkdownReportWriter(), new JsonReportWriter(), new HtmlReportWriter());
     }
 
     /** Lê um arquivo de payloads do classpath; ausente ou ilegível é erro de montagem. */
