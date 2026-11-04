@@ -27,6 +27,10 @@ Verificação: `mvn test -Dtest=HeuristicDetectorTest`.
 
 - [x] **5. Refactor e Javadoc.** Constantes nomeadas; Javadoc com as regras de XSS.
 
-- [ ] **6. Checkpoint.** `mvn clean verify` verde. Lab: `scan --module xss` no DVWA `low` e
+- [x] **6. Checkpoint.** `mvn clean verify` verde. Lab: `scan --module xss` no DVWA `low` e
   `medium` (1 achado cada) e no Juice Shop (0). Marcar na Fase 3 do `build-order` o item
   das regras de XSS. Marcar passos aqui, commits, push.
+  - Feito: `mvn clean verify` com 150 testes verdes (inclui `DependencyRuleTest`).
+  - Lab (2026-11-04), `scan --module xss`: DVWA `low` → 1 achado (`xss-script`); `medium` e
+    `high` → 1 achado cada (`xss-svg-onload`, o `<script>` é filtrado); `impossible` → 0;
+    Juice Shop → 0 (`/redirect` escapa). `scan --module sqli` no DVWA segue com 1 achado.
