@@ -123,7 +123,7 @@ class ContainerTest {
         InvalidScanRequestException e = assertThrows(InvalidScanRequestException.class,
                 () -> service.scan(new ScanRequest(target(), List.of("nenhum"), "md", dir.resolve("r.md"))));
 
-        assertTrue(e.getMessage().contains("(disponíveis: sqli, xss, xss-dom, xss-stored)"), e.getMessage());
+        assertTrue(e.getMessage().contains("(disponíveis: sqli, xss, xss-dom, xss-stored, api)"), e.getMessage());
         assertTrue(received.isEmpty(), "nenhuma requisição: " + received);
     }
 
