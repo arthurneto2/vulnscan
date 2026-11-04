@@ -5,14 +5,14 @@ Cada passo: teste → mínimo → refactor.
 
 ## Passos
 
-- [ ] **1. format() + esqueleto HTML.** `HtmlReportWriterTest#formatEhHtml`,
+- [x] **1. format() + esqueleto HTML.** `HtmlReportWriterTest#formatEhHtml`,
   `#semAchadosTemCabecalhoEDoctype`. Green: classe, `format()`="html", HTML base
   (doctype, charset, alvo, duração, "Nenhum achado.").
 
-- [ ] **2. Achado + escape.** `#comAchadoTrazVeredito`, `#escapaHtmlDoPayloadENaoInjeta`.
+- [x] **2. Achado + escape.** `#comAchadoTrazVeredito`, `#escapaHtmlDoPayloadENaoInjeta`.
   Green: render do achado com escape de `& < > " '` em todo texto do alvo/payload.
 
-- [ ] **3. Truncamento + I/O.** `#corpoGrandeTruncado`, `#criaDiretorioPaiEUtf8`,
+- [x] **3. Truncamento + I/O.** `#corpoGrandeTruncado`, `#criaDiretorioPaiEUtf8`,
   `#erroDeIoViraUnchecked`. Green: truncar corpos; `Files.createDirectories`; UTF-8.
 
 - [ ] **4. Container + checkpoint.** Registrar `html`; `ContainerTest#formatoHtmlGravaHtml`.
