@@ -7,25 +7,29 @@ Verificar: `mvn test -Dtest=LlmDetectorTest`.
 
 ## Passos
 
-- [ ] **0. Confirmar Jackson no domínio.** Rodar `mvn test -Dtest=DependencyRuleTest` com um
+- [x] **0. Confirmar Jackson no domínio.** Rodar `mvn test -Dtest=DependencyRuleTest` com um
   import de Jackson no `LlmDetector` (esqueleto). Se passar, segue com Jackson; se barrar,
   parse manual. (Anotar o resultado no plano.)
+  - Resultado: `DependencyRuleTest` passou com Jackson no `LlmDetector` — segue com Jackson.
 
-- [ ] **1. Nome e JSON válido.** `#nomeEllm`, `#judgeNuloLancaNpe`, `#jsonValidoViraVerdict`.
+- [x] **1. Nome e JSON válido.** `#nomeEllm`, `#judgeNuloLancaNpe`, `#jsonValidoViraVerdict`.
   Green: `name()`, chamar o fake, parse direto do JSON inteiro.
 
-- [ ] **2. JSON cercado de texto.** `#jsonCercadoDeTextoEExtraido`. Green: varredura do
+- [x] **2. JSON cercado de texto.** `#jsonCercadoDeTextoEExtraido`. Green: varredura do
   primeiro bloco `{...}` por profundidade.
 
-- [ ] **3. Parse defensivo.** `#lixoSemJsonNaoEParseavel`, `#semCampoVulnerableNaoEParseavel`
+- [x] **3. Parse defensivo.** `#lixoSemJsonNaoEParseavel`, `#semCampoVulnerableNaoEParseavel`
   → `Verdict(false,0.0,"...não parseável","llm")`.
 
-- [ ] **4. Campos.** `#confidenceForaDoIntervaloEGrampeada`,
+- [x] **4. Campos.** `#confidenceForaDoIntervaloEGrampeada`,
   `#confidenceERationaleAusentesUsamPadrao`.
 
-- [ ] **5. Falha do LlmClient.** `#clienteQueLancaViraBaixaConfianca` (timeout/indisponível).
+- [x] **5. Falha do LlmClient.** `#clienteQueLancaViraBaixaConfianca` (timeout/indisponível).
 
-- [ ] **6. Prompt.** `#promptCitaTipoPayloadRequisicaoETruncaCorpo`. Green: montar o prompt e
+- [x] **6. Prompt.** `#promptCitaTipoPayloadRequisicaoETruncaCorpo`. Green: montar o prompt e
   truncar em `MAX_BODY_CHARS`. Javadoc.
 
-- [ ] **7. Checkpoint.** `mvn clean verify` verde. Marcar passos, commits, push.
+- [x] **7. Checkpoint.** `mvn clean verify` verde. Marcar passos, commits, push.
+  - Feito: `mvn clean verify` verde; `LlmDetectorTest` (10) com `LlmClient` fake (JSON
+    válido, cercado de texto, lixo, sem `vulnerable`, confidence grampeada/ausente, cliente
+    que lança, prompt truncando corpo grande).
