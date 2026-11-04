@@ -73,29 +73,34 @@ targets:
       - id: js-auth-admin-config
         type: BROKEN_AUTH
         location: "/rest/admin/application-configuration"
+        auth_mode: NONE
         vulnerable: true
         notes: "endpoint de config servido sem token (200 com JSON de configuração)"
 
       - id: js-auth-users-protected
         type: BROKEN_AUTH
         location: "/api/Users"
+        auth_mode: NONE
         vulnerable: false
         notes: "negativo — sem token devolve 401 (protegido)"
 
       - id: js-idor-basket
         type: BROKEN_ACCESS_CONTROL
         location: "/rest/basket/{otherId}"
+        auth_mode: USER_TOKEN_OTHER_RESOURCE
         vulnerable: true
         notes: "IDOR — com token de um usuário acessa a cesta de outro id (200)"
 
       - id: js-bac-users-role
         type: BROKEN_ACCESS_CONTROL
         location: "/api/Users"
+        auth_mode: USER_TOKEN
         vulnerable: true
         notes: "papel indevido — usuário comum lista todos os usuários (200)"
 
       - id: js-bac-order-history
         type: BROKEN_ACCESS_CONTROL
         location: "/rest/order-history/orders"
+        auth_mode: USER_TOKEN
         vulnerable: false
         notes: "negativo — usuário comum recebe 403 (papel de admin exigido)"

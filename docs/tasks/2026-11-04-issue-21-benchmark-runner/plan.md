@@ -8,7 +8,7 @@ Pacote: `br.ufv.vulnscan.app.benchmark`. Cada passo: teste → mínimo → refac
 - [x] **1. Métricas (puro).** `MetricsTest`: `Outcome.of`, precisão/recall/F1/FPR (inclui
   denominador 0), agregação por tipo/total. Green: `Outcome`, `ConfusionMatrix`, `Metrics`.
 
-- [ ] **2. Gabarito em records.** `GroundTruthLoaderTest` lê `experiments/ground_truth.yaml`.
+- [x] **2. Gabarito em records.** `GroundTruthLoaderTest` lê `experiments/ground_truth.yaml`.
   Green: records + `load(Path)` (Jackson YAML). Adicionar `auth_mode` ao YAML e ao doc.
 
 - [ ] **3. BenchmarkRunner + CSVs.** `BenchmarkRunnerTest` com `CaseRunner` fake e `@TempDir`:
