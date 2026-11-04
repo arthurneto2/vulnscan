@@ -45,6 +45,7 @@ class MainTest {
     void scanGravaRelatorioESai0() throws IOException {
         Path out = dir.resolve("r.md");
         // Container real: o módulo sqli ataca um servidor em processo (sem falha), não o lab.
+        // Módulo explícito: "todos" abriria o navegador (xss-dom, xss-stored).
         List<String> received = new CopyOnWriteArrayList<>();
         HttpServer server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         server.createContext("/", exchange -> {
@@ -56,7 +57,7 @@ class MainTest {
         try {
             String target = "http://127.0.0.1:" + server.getAddress().getPort() + "/";
 
-            Result result = run(new Main(), "scan", "--target", target, "--out", out.toString());
+            Result result = run(new Main(), "scan", "--target", target, "--module", "sqli", "--out", out.toString());
 
             assertEquals(0, result.code(), result.err());
             assertTrue(received.contains("GET /vulnerabilities/sqli/"), "recebidas: " + received);
