@@ -6,7 +6,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
 
 ## Passos
 
-- [ ] **1. `InjectionPoint.url` (refactor guiado por teste).** `InjectionPointTest`:
+- [x] **1. `InjectionPoint.url` (refactor guiado por teste).** `InjectionPointTest`:
   `#pathSemQueryUsaInterrogacao`, `#pathComQueryFixaUsaEComercial`,
   `#valorEhCodificadoEmUtf8`. Green: método no record; `SqlInjectionModule` passa a usá-lo
   e perde o `url` privado. Atualizar `docs/contracts.md`.

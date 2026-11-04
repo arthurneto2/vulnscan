@@ -71,7 +71,10 @@ public interface VulnModule {
 ```java
 // Ponto de injeção: GET em path (relativo à URL base; pode ter query fixa) com o payload
 // no parâmetro de query `parameter`.
-record InjectionPoint(String path, String parameter) {}
+record InjectionPoint(String path, String parameter) {
+    // baseUrl.resolve(path) + ?/& + parameter=<value URL-encoded UTF-8>
+    public java.net.URI url(java.net.URI baseUrl, String value) { ... }
+}
 
 // Parser puro do arquivo de payloads (id<TAB>valor<TAB>descrição; # e vazias ignoradas).
 // Linha malformada ou id repetido → IllegalArgumentException citando a linha.
