@@ -20,8 +20,22 @@ import java.util.regex.Pattern;
  *       {@value #TIME_PAYLOAD_PREFIX} — e resposta de {@value #TIME_THRESHOLD_MILLIS} ms
  *       ou mais.</li>
  * </ol>
- * Os demais tipos ainda não têm regras (issues #13 e #15) e recebem veredito negativo com
- * confiança 0. Nunca lança exceção por causa do tipo.
+ *
+ * <p>Regras de XSS (refletido e armazenado), sobre o payload concreto (com o marcador único
+ * que o módulo pôs), na ordem:
+ * <ol>
+ *   <li>o corpo contém o payload literalmente (diferenciando maiúsculas) e o
+ *       {@code content-type} é HTML ou ausente → vulnerável;</li>
+ *   <li>contém o payload, mas a resposta não é HTML (ex.: JSON) → não vulnerável, com
+ *       confiança baixa;</li>
+ *   <li>o payload só aparece depois de desfazer o escape de HTML ({@code &lt; &gt; &quot;
+ *       &#39; &#039; &#x27; &amp;}) → não vulnerável;</li>
+ *   <li>senão (inclui reflexão parcial, ex.: {@code <script>} removido) → não refletido.</li>
+ * </ol>
+ * O contexto da injeção (atributo, script, comentário) e CSP não são analisados.
+ *
+ * <p>Autenticação/autorização ainda não têm regras (issue #15) e recebem veredito negativo
+ * com confiança 0. Nunca lança exceção por causa do tipo.
  */
 public final class HeuristicDetector implements Detector {
 
@@ -33,6 +47,10 @@ public final class HeuristicDetector implements Detector {
     private static final double TIME_DELAY_CONFIDENCE = 0.8;
     private static final double NO_SIGNAL_CONFIDENCE = 0.6;
     private static final double NO_RULES_CONFIDENCE = 0.0;
+    private static final double XSS_RAW_HTML_CONFIDENCE = 0.9;
+    private static final double XSS_ESCAPED_CONFIDENCE = 0.8;
+    private static final double XSS_NOT_REFLECTED_CONFIDENCE = 0.6;
+    private static final double XSS_NOT_HTML_CONFIDENCE = 0.5;
 
     /** Assinaturas de erro de banco por SGBD, testadas na ordem. */
     private static final Map<String, Pattern> SQL_ERRORS = new LinkedHashMap<>();
@@ -80,20 +98,23 @@ public final class HeuristicDetector implements Detector {
 
     private static Verdict judgeXss(Evidence evidence) {
         String body = Objects.requireNonNullElse(evidence.response().body(), "");
-        String contentType = evidence.response().headers().get("content-type");
-        if (body.contains(evidence.payload().value())) {
+        String value = evidence.payload().value();
+        if (body.contains(value)) {
+            String contentType = evidence.response().headers().get("content-type");
             if (contentType == null || contentType.contains("html")) {
-                return new Verdict(true, 0.9, "payload refletido sem escape em resposta HTML", NAME);
+                return new Verdict(true, XSS_RAW_HTML_CONFIDENCE,
+                        "payload refletido sem escape em resposta HTML", NAME);
             }
-            return new Verdict(false, 0.5,
+            return new Verdict(false, XSS_NOT_HTML_CONFIDENCE,
                     "payload refletido, mas a resposta é " + contentType + ", não HTML", NAME);
         }
-        if (unescapeHtml(body).contains(evidence.payload().value())) {
-            return new Verdict(false, 0.8, "payload refletido, mas com escape de HTML", NAME);
+        if (unescapeHtml(body).contains(value)) {
+            return new Verdict(false, XSS_ESCAPED_CONFIDENCE, "payload refletido, mas com escape de HTML", NAME);
         }
-        return new Verdict(false, 0.6, "payload não refletido na resposta", NAME);
+        return new Verdict(false, XSS_NOT_REFLECTED_CONFIDENCE, "payload não refletido na resposta", NAME);
     }
 
+    /** Desfaz só as entidades de escape comuns; {@code &amp;} por último, para não decodificar duas vezes. */
     private static String unescapeHtml(String text) {
         return text.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"")
                 .replace("&#39;", "'").replace("&#039;", "'").replace("&#x27;", "'")

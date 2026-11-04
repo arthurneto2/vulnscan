@@ -25,7 +25,7 @@ Verificação: `mvn test -Dtest=HeuristicDetectorTest`.
 
 - [x] **4. Escapado.** `#xssEscapadoNaoEVulneravel` (corpo do Juice Shop `/redirect`, 0.8).
 
-- [ ] **5. Refactor e Javadoc.** Constantes nomeadas; Javadoc com as regras de XSS.
+- [x] **5. Refactor e Javadoc.** Constantes nomeadas; Javadoc com as regras de XSS.
 
 - [ ] **6. Checkpoint.** `mvn clean verify` verde. Lab: `scan --module xss` no DVWA `low` e
   `medium` (1 achado cada) e no Juice Shop (0). Marcar na Fase 3 do `build-order` o item
