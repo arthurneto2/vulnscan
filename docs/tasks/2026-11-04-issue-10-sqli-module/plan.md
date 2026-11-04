@@ -44,6 +44,6 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   em `/vulnerabilities/sqli/`), `#semModulosRodaSqli`, `#moduloSmokeNaoExisteMais`.
   Ajustar `MainTest#scanGravaRelatorioESai0`. Apagar `SmokeModule` e `SmokeModuleTest`.
 
-- [ ] **10. Checkpoint.** `mvn clean verify` verde. Marcar na Fase 2 do `build-order`
-  os itens do módulo e do arquivo de payloads; o checkpoint de laboratório (DVWA) fica
-  descrito no PR para execução manual. Marcar passos aqui, commits, push.
+- [ ] **10. Checkpoint.** `mvn clean verify` verde. Scan real no DVWA e no Juice Shop do lab. Marcar na Fase 2 do `build-order`
+  os itens do módulo, do arquivo de payloads e o checkpoint
+  da fase. Marcar passos aqui, commits, push.

