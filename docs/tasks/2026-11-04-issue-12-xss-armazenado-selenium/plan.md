@@ -11,7 +11,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   `#dialogoSemMarcadorSegueRegrasDoCorpo`. Atualizar `docs/contracts.md`.
   Verificar: `mvn test -Dtest=HeuristicDetectorTest`.
 
-- [ ] **2. `RenderedPage` e `XssBrowser`.** `RenderedPageTest#dialogosCopiadosEImutaveis`,
+- [x] **2. `RenderedPage` e `XssBrowser`.** `RenderedPageTest#dialogosCopiadosEImutaveis`,
   `#dialogosNulosViramVazio`.
 
 - [ ] **3. `DomXssModule`.** `DomXssModuleTest`: `#typeEXssRefletido`,
