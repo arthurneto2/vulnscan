@@ -18,7 +18,7 @@ Cada passo: teste → mínimo → refactor.
   (ex.: `--detector llm` roda contra o servidor em processo e grava relatório com veredito
   `llm`). Ajustar o que montava `ScanService(modules, writers)`.
 
-- [ ] **4. CLI `--detector`.** `MainTest#detectorChegaAoScanRequest`,
+- [x] **4. CLI `--detector`.** `MainTest#detectorChegaAoScanRequest`,
   `#detectorInvalidoSai1`. `ScanCommand` com a opção.
 
 - [ ] **5. Contratos + checkpoint.** `docs/contracts.md`. `mvn clean verify` verde. Lab
