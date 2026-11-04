@@ -11,7 +11,7 @@ Verificação: `mvn test -Dtest=HeuristicDetectorTest`.
 
 ## Passos
 
-- [ ] **1. Acesso concedido (200) e bloqueado (401/403).** `#acessoConcedidoEVulneravel`
+- [x] **1. Acesso concedido (200) e bloqueado (401/403).** `#acessoConcedidoEVulneravel`
   (parametrizado BROKEN_AUTH/BROKEN_ACCESS_CONTROL, 200 com corpo), `#bloqueadoNaoEVulneravel`
   (parametrizado 401, 403). Ajustar `#tipoSemRegrasNaoEVulneravel` (hoje cobre os dois tipos
   de auth) para não restar nenhum tipo sem regra. Green: ramo de auth com regras 1 e 3

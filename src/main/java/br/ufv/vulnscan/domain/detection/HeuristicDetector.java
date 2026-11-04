@@ -73,8 +73,7 @@ public final class HeuristicDetector implements Detector {
         return switch (evidence.payload().type()) {
             case SQL_INJECTION -> judgeSqlInjection(evidence);
             case XSS_REFLECTED, XSS_STORED -> judgeXss(evidence);
-            case BROKEN_AUTH, BROKEN_ACCESS_CONTROL -> new Verdict(false,
-                    NO_RULES_CONFIDENCE, "sem regras heurísticas para " + evidence.payload().type(), NAME);
+            case BROKEN_AUTH, BROKEN_ACCESS_CONTROL -> judgeAuth(evidence);
         };
     }
 
@@ -98,6 +97,19 @@ public final class HeuristicDetector implements Detector {
         }
         return new Verdict(false, NO_SIGNAL_CONFIDENCE,
                 "nenhuma assinatura de erro de SQL nem atraso temporal", NAME);
+    }
+
+    private static Verdict judgeAuth(Evidence evidence) {
+        int status = evidence.response().status();
+        if (status == 401 || status == 403) {
+            return new Verdict(false, 0.85, "acesso negado como esperado (status " + status + ")", NAME);
+        }
+        if (status >= 200 && status < 300) {
+            return new Verdict(true, 0.7,
+                    "acesso concedido (status " + status + ") onde se esperava 401/403", NAME);
+        }
+        return new Verdict(false, 0.6,
+                "status " + status + " inconclusivo para autenticação/autorização", NAME);
     }
 
     private static Verdict judgeXss(Evidence evidence) {
