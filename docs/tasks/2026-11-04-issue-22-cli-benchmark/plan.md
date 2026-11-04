@@ -5,7 +5,7 @@ Cada passo: teste → mínimo → refactor.
 
 ## Passos
 
-- [ ] **1. `BenchmarkRequest` + `BenchmarkService`.** `BenchmarkServiceTest` com `CaseRunner`
+- [x] **1. `BenchmarkRequest` + `BenchmarkService`.** `BenchmarkServiceTest` com `CaseRunner`
   fake e `@TempDir`: grava `summary.csv`/`run-<n>.csv`; defaults de `runs`/`outDir`; gabarito
   inexistente → `InvalidScanRequestException`. `mvn test -Dtest=BenchmarkServiceTest`.
 
