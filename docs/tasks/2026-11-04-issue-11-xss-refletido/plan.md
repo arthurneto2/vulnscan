@@ -29,7 +29,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   `#construtorRejeitaPayloadSemMarcador`, `#listasSaoCopiadas`. Javadoc. Atualizar
   `docs/contracts.md`. Verificar: `mvn test -Dtest=XssModuleTest`.
 
-- [ ] **6. `Container` registra `xss`.** `ContainerTest#moduloXssAtacaDvwaEJuiceShopComMarcadoresDistintos`
+- [x] **6. `Container` registra `xss`.** `ContainerTest#moduloXssAtacaDvwaEJuiceShopComMarcadoresDistintos`
   (servidor em processo grava as queries), `#semModulosRodaSqliEXss`. Green: registro,
   pontos e marcador `vsx` + 8 hex.
 

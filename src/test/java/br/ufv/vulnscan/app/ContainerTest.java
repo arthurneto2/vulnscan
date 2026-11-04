@@ -18,6 +18,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -38,6 +40,7 @@ class ContainerTest {
     private HttpServer server;
     private final List<String> received = new CopyOnWriteArrayList<>();
     private final List<String> cookies = new CopyOnWriteArrayList<>();
+    private final List<String> queries = new CopyOnWriteArrayList<>();
 
     /** Imita o DVWA: em /vulnerabilities/sqli/, id com aspas simples devolve erro de MySQL. */
     @BeforeEach
@@ -46,6 +49,7 @@ class ContainerTest {
         server.createContext("/", exchange -> {
             URI uri = exchange.getRequestURI();
             received.add(exchange.getRequestMethod() + " " + uri.getPath());
+            queries.add(uri.getPath() + "?" + uri.getQuery());
             String cookie = exchange.getRequestHeaders().getFirst("Cookie");
             if (cookie != null) {
                 cookies.add(cookie);
@@ -88,13 +92,28 @@ class ContainerTest {
     }
 
     @Test
-    void semModulosRodaSqliNosPontosDoDvwaEDoJuiceShop() {
+    void semModulosRodaSqliEXss() {
         ScanService service = new Container(Config.defaults()).scanService();
 
         service.scan(new ScanRequest(target(), List.of(), "md", dir.resolve("report.md")));
 
-        assertTrue(received.contains("GET /vulnerabilities/sqli/"), "recebidas: " + received);
-        assertTrue(received.contains("GET /rest/products/search"), "recebidas: " + received);
+        assertTrue(received.containsAll(List.of("GET /vulnerabilities/sqli/", "GET /rest/products/search",
+                "GET /vulnerabilities/xss_r/", "GET /redirect")), "recebidas: " + received);
+    }
+
+    @Test
+    void moduloXssAtacaDvwaEJuiceShopComMarcadoresDistintos() {
+        ScanService service = new Container(Config.defaults()).scanService();
+
+        service.scan(new ScanRequest(target(), List.of("xss"), "md", dir.resolve("report.md")));
+
+        assertTrue(received.containsAll(List.of("GET /vulnerabilities/xss_r/", "GET /redirect")),
+                "recebidas: " + received);
+        Pattern marker = Pattern.compile("vsx[0-9a-f]{8}");
+        List<String> markers = queries.stream().map(marker::matcher).filter(Matcher::find)
+                .map(Matcher::group).toList();
+        assertEquals(queries.size(), markers.size(), "toda requisição leva marcador: " + queries);
+        assertEquals(markers.size(), markers.stream().distinct().count(), "marcadores repetidos: " + markers);
     }
 
     @Test
