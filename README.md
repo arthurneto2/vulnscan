@@ -35,6 +35,9 @@ docker compose -f lab/docker-compose.yml down
 docker compose -f lab/docker-compose.yml down && docker compose -f lab/docker-compose.yml up -d
 ```
 
+As imagens do laboratório são **fixadas por digest** no `docker-compose.yml`
+(reprodutibilidade — ver `docs/experiment.md`).
+
 O **DVWA exige sessão**: faça login no navegador (`admin`/`password`), escolha o nível em
 *DVWA Security* (ex.: `low`) e passe o cookie ao scanner com `--header` (ver abaixo). O
 Juice Shop não precisa de login para os módulos de SQLi/XSS; o módulo de API faz o próprio
