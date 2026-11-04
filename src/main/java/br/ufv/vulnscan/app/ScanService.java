@@ -36,7 +36,7 @@ public final class ScanService {
         ReportWriter writer = writerFor(request.format());
         List<VulnModule> selected = selectModules(request.modules());
 
-        ScanReport report = new Scanner(selected).scan(new Target(url.getAuthority(), url));
+        ScanReport report = new Scanner(selected).scan(new Target(url.getAuthority(), url, request.headers()));
         writer.write(report, request.out() != null ? request.out() : Path.of("report." + writer.format()));
         return report;
     }

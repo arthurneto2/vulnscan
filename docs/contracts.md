@@ -119,9 +119,14 @@ public final class Scanner {
     public ScanReport scan(Target target) { ... }
 }
 
-// app/ScanRequest.java — pedido vindo da CLI. modules vazio = todos; out nulo = report.<format>.
+// app/ScanRequest.java — pedido vindo da CLI. modules vazio = todos; out nulo = report.<format>;
+// headers (de --header) vão para Target.headers; nulo → vazio.
 public record ScanRequest(java.net.URI target, java.util.List<String> modules,
-                          String format, java.nio.file.Path out) {}
+                          String format, java.nio.file.Path out,
+                          java.util.Map<String, String> headers) {
+    public ScanRequest(java.net.URI target, java.util.List<String> modules,
+                       String format, java.nio.file.Path out) { ... }   // headers vazios
+}
 
 // app/ScanService.java — caso de uso chamado pela CLI.
 //   modules: por nome de --module, na ordem de execução; writers: um por format().

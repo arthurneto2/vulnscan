@@ -32,7 +32,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   Atualizar `docs/contracts.md` (InjectionPoint, construtor, PayloadFile).
   Verificar: `mvn test -Dtest=SqlInjectionModuleTest`.
 
-- [ ] **7. Headers no `ScanRequest`/`ScanService`.** `ScanServiceTest#passaHeadersAoTarget`
+- [x] **7. Headers no `ScanRequest`/`ScanService`.** `ScanServiceTest#passaHeadersAoTarget`
   (módulo fake grava o `Target`). Green: componente + construtor de 4 argumentos.
 
 - [ ] **8. `--header` na CLI.** `MainTest#headerRepetivelChegaAoScanRequest`,
