@@ -141,6 +141,19 @@ class ContainerTest {
     }
 
     @Test
+    void formatoHtmlGravaHtml() throws IOException {
+        Path out = dir.resolve("report.html");
+        ScanService service = new Container(Config.defaults()).scanService();
+
+        service.scan(new ScanRequest(target(), List.of("sqli"), "html", out,
+                Map.of("Cookie", "PHPSESSID=abc; security=low")));
+
+        String html = Files.readString(out);
+        assertTrue(html.contains("<!DOCTYPE html>"), html);
+        assertTrue(html.contains("SQL_INJECTION"), html);
+    }
+
+    @Test
     void moduloSmokeNaoExisteMais() {
         ScanService service = new Container(Config.defaults()).scanService();
 
