@@ -27,7 +27,12 @@ record HttpRequest(String method, java.net.URI url,
                    java.util.Map<String, String> headers, String body) {}
 
 record HttpResponse(int status, java.util.Map<String, String> headers,
-                    String body, long elapsedMillis) {}
+                    String body, long elapsedMillis) {
+    // Resposta sintética de módulo com navegador: status 200, corpo = DOM renderizado,
+    // content-type text/html e, se houve alert/confirm/prompt, este pseudo-header com os
+    // textos juntados por ", ". O HeuristicDetector trata diálogo com o marcador como XSS.
+    static final String DIALOGS_HEADER = "x-vulnscan-dialogs";
+}
 
 // O que um Detector recebe para julgar: o payload aplicado e a troca HTTP resultante.
 record Evidence(Payload payload, HttpRequest request, HttpResponse response) {}
@@ -98,6 +103,41 @@ public final class XssModule implements VulnModule {
                      java.util.List<Payload> payloads,
                      java.util.List<InjectionPoint> points,
                      java.util.function.Supplier<String> markers) { ... }
+}
+
+// --- XSS via navegador (#12). Interface do PRÓPRIO módulo, não é porta: só para o domínio
+// não depender de Selenium (adaptador: adapter/browser/SeleniumBrowser).
+record RenderedPage(String html, java.util.List<String> dialogs, long elapsedMillis) {
+    // dialogs: textos de alert/confirm/prompt, na ordem; nulo → vazio; cópia imutável.
+    public HttpResponse toResponse() { ... }   // 200, text/html, corpo = DOM, DIALOGS_HEADER se houver
+}
+
+public interface XssBrowser {
+    // De headers, só "Cookie" é aplicado (WebDriver não manda header arbitrário).
+    RenderedPage open(java.net.URI url, java.util.Map<String, String> headers);
+}
+
+// XSS de DOM (tipo XSS_REFLECTED): como o XssModule, mas abre a URL no navegador.
+// Positivo → Finding MEDIUM e encerra o ponto.
+public final class DomXssModule implements VulnModule {
+    public DomXssModule(XssBrowser browser, Detector detector,
+                        java.util.List<Payload> payloads,
+                        java.util.List<InjectionPoint> points,
+                        java.util.function.Supplier<String> markers) { ... }
+}
+
+// Ponto de XSS armazenado: POST de formulário em submitPath (fixedFields na ordem + payload
+// em payloadField) e a página viewPath onde o conteúdo aparece.
+record StoredXssPoint(String submitPath, java.util.Map<String, String> fixedFields,
+                      String payloadField, String viewPath) {}
+
+// XSS armazenado (tipo XSS_STORED): grava pelo HttpClient, vê pelo XssBrowser. Evidence =
+// (payload, o POST, página renderizada). Positivo → Finding HIGH e encerra o ponto.
+public final class StoredXssModule implements VulnModule {
+    public StoredXssModule(HttpClient http, XssBrowser browser, Detector detector,
+                           java.util.List<Payload> payloads,
+                           java.util.List<StoredXssPoint> points,
+                           java.util.function.Supplier<String> markers) { ... }
 }
 ```
 

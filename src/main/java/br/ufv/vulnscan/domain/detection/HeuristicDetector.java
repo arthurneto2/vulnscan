@@ -1,6 +1,7 @@
 package br.ufv.vulnscan.domain.detection;
 
 import br.ufv.vulnscan.domain.model.Evidence;
+import br.ufv.vulnscan.domain.model.HttpResponse;
 import br.ufv.vulnscan.domain.model.Verdict;
 
 import java.util.LinkedHashMap;
@@ -24,6 +25,8 @@ import java.util.regex.Pattern;
  * <p>Regras de XSS (refletido e armazenado), sobre o payload concreto (com o marcador único
  * que o módulo pôs), na ordem:
  * <ol>
+ *   <li>módulo com navegador: o pseudo-header {@link HttpResponse#DIALOGS_HEADER} tem um
+ *       diálogo cujo texto está no payload (o marcador) → vulnerável (o navegador executou);</li>
  *   <li>o corpo contém o payload literalmente (diferenciando maiúsculas) e o
  *       {@code content-type} é HTML ou ausente → vulnerável;</li>
  *   <li>contém o payload, mas a resposta não é HTML (ex.: JSON) → não vulnerável, com
@@ -47,6 +50,7 @@ public final class HeuristicDetector implements Detector {
     private static final double TIME_DELAY_CONFIDENCE = 0.8;
     private static final double NO_SIGNAL_CONFIDENCE = 0.6;
     private static final double NO_RULES_CONFIDENCE = 0.0;
+    private static final double XSS_DIALOG_CONFIDENCE = 0.95;
     private static final double XSS_RAW_HTML_CONFIDENCE = 0.9;
     private static final double XSS_ESCAPED_CONFIDENCE = 0.8;
     private static final double XSS_NOT_REFLECTED_CONFIDENCE = 0.6;
@@ -99,6 +103,10 @@ public final class HeuristicDetector implements Detector {
     private static Verdict judgeXss(Evidence evidence) {
         String body = Objects.requireNonNullElse(evidence.response().body(), "");
         String value = evidence.payload().value();
+        if (dialogWithMarker(evidence.response(), value)) {
+            return new Verdict(true, XSS_DIALOG_CONFIDENCE,
+                    "o navegador executou o payload: diálogo com o marcador", NAME);
+        }
         if (body.contains(value)) {
             String contentType = evidence.response().headers().get("content-type");
             if (contentType == null || contentType.contains("html")) {
@@ -112,6 +120,20 @@ public final class HeuristicDetector implements Detector {
             return new Verdict(false, XSS_ESCAPED_CONFIDENCE, "payload refletido, mas com escape de HTML", NAME);
         }
         return new Verdict(false, XSS_NOT_REFLECTED_CONFIDENCE, "payload não refletido na resposta", NAME);
+    }
+
+    /** Algum diálogo (do pseudo-header, separado por ", ") tem texto contido no payload — o marcador. */
+    private static boolean dialogWithMarker(HttpResponse response, String value) {
+        String dialogs = response.headers().get(HttpResponse.DIALOGS_HEADER);
+        if (dialogs == null) {
+            return false;
+        }
+        for (String text : dialogs.split(", ")) {
+            if (!text.isBlank() && value.contains(text)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Desfaz só as entidades de escape comuns; {@code &amp;} por último, para não decodificar duas vezes. */

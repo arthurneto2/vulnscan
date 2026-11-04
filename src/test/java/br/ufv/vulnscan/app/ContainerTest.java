@@ -92,10 +92,10 @@ class ContainerTest {
     }
 
     @Test
-    void semModulosRodaSqliEXss() {
+    void sqliEXssRodamJuntos() {
         ScanService service = new Container(Config.defaults()).scanService();
 
-        service.scan(new ScanRequest(target(), List.of(), "md", dir.resolve("report.md")));
+        service.scan(new ScanRequest(target(), List.of("sqli", "xss"), "md", dir.resolve("report.md")));
 
         assertTrue(received.containsAll(List.of("GET /vulnerabilities/sqli/", "GET /rest/products/search",
                 "GET /vulnerabilities/xss_r/", "GET /redirect")), "recebidas: " + received);
@@ -114,6 +114,17 @@ class ContainerTest {
                 .map(Matcher::group).toList();
         assertEquals(queries.size(), markers.size(), "toda requisição leva marcador: " + queries);
         assertEquals(markers.size(), markers.stream().distinct().count(), "marcadores repetidos: " + markers);
+    }
+
+    @Test
+    void modulosDisponiveisIncluemXssDomEXssStored() {
+        ScanService service = new Container(Config.defaults()).scanService();
+
+        InvalidScanRequestException e = assertThrows(InvalidScanRequestException.class,
+                () -> service.scan(new ScanRequest(target(), List.of("nenhum"), "md", dir.resolve("r.md"))));
+
+        assertTrue(e.getMessage().contains("(disponíveis: sqli, xss, xss-dom, xss-stored)"), e.getMessage());
+        assertTrue(received.isEmpty(), "nenhuma requisição: " + received);
     }
 
     @Test
