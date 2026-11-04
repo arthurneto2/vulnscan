@@ -14,8 +14,12 @@ em API REST. Arquitetura hexagonal; tudo open source e offline.
 - Ollama, para a camada de IA: https://ollama.com
 
 ```bash
-ollama pull mistral:7b-instruct
+ollama pull mistral:7b-instruct-v0.3-q4_0
 ```
+
+Modelo fixado para o experimento (reprodutibilidade): tag `mistral:7b-instruct-v0.3-q4_0`,
+digest `sha256:<preencher após ollama pull>` (de `ollama list --digests`). A tag também está
+em `app/Config.java` (`Config.defaults()`).
 
 ## Rodando
 

@@ -210,9 +210,9 @@ public final class ScanService {
 // app/InvalidScanRequestException.java — alvo, módulo ou formato inválido.
 public final class InvalidScanRequestException extends RuntimeException { ... }
 
-// app/Config.java — configuração fixa. Modelo/URL do Ollama entram com #16/#17.
-public record Config(java.time.Duration httpTimeout) {
-    public static Config defaults() { ... }   // httpTimeout = 30 s
+// app/Config.java — configuração fixa. Modelo e endpoint do Ollama fixados (#16).
+public record Config(java.time.Duration httpTimeout, java.net.URI ollamaBaseUrl, String ollamaModel) {
+    public static Config defaults() { ... }   // 30 s, http://localhost:11434, mistral:7b-instruct-v0.3-q4_0
 }
 
 // app/Container.java — raiz de composição: instancia adaptadores e injeta nos módulos.
