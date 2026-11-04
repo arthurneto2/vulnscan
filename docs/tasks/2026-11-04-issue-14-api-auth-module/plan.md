@@ -6,7 +6,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
 
 ## Passos
 
-- [ ] **1. `ApiSession`/`AuthSession`, `AuthMode`, `AuthProbe`.** Records/enum/interface e
+- [x] **1. `ApiSession`/`AuthSession`, `AuthMode`, `AuthProbe`.** Records/enum/interface e
   `AuthSessionTest` (campos não nulos → NPE). `mvn test -Dtest=AuthSessionTest`.
 
 - [ ] **2. `ApiAuthModule`: requisições por modo.** `ApiAuthModuleTest` (fakes):
