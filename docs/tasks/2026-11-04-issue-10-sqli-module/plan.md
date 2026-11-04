@@ -23,7 +23,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   `#enviaGetComPayloadCodificadoNoParametro`, `#respeitaQueryFixaDoPath`,
   `#enviaHeadersDoAlvo`, `#typeESqlInjection`.
 
-- [ ] **5. Evidência e vereditos.** `#evidenciaPassadaAoDetector`,
+- [x] **5. Evidência e vereditos.** `#evidenciaPassadaAoDetector`,
   `#semPositivoNaoReportaETentaTudo`, `#positivoViraFindingHighEParaNoPonto`,
   `#positivoEmUmPontoNaoImpedeOutro`, `#comHeuristicDetectorRealDetectaErroMysql`.
 

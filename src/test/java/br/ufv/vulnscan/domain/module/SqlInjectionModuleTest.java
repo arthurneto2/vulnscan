@@ -1,10 +1,13 @@
 package br.ufv.vulnscan.domain.module;
 
 import br.ufv.vulnscan.domain.detection.Detector;
+import br.ufv.vulnscan.domain.detection.HeuristicDetector;
 import br.ufv.vulnscan.domain.model.Evidence;
+import br.ufv.vulnscan.domain.model.Finding;
 import br.ufv.vulnscan.domain.model.HttpRequest;
 import br.ufv.vulnscan.domain.model.HttpResponse;
 import br.ufv.vulnscan.domain.model.Payload;
+import br.ufv.vulnscan.domain.model.Severity;
 import br.ufv.vulnscan.domain.model.Target;
 import br.ufv.vulnscan.domain.model.Verdict;
 import br.ufv.vulnscan.domain.model.VulnType;
@@ -19,6 +22,8 @@ import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Testes do módulo de SQLi com HttpClient e Detector fakes, sem rede. */
 class SqlInjectionModuleTest {
@@ -63,6 +68,69 @@ class SqlInjectionModuleTest {
         module(List.of(QUOTE), List.of(DVWA)).scan(logged);
 
         assertEquals(Map.of("Cookie", "PHPSESSID=abc; security=low"), onlyRequest().headers());
+    }
+
+    @Test
+    void evidenciaPassadaAoDetector() {
+        HttpResponse resposta = response("corpo da resposta");
+        http.response = resposta;
+
+        module(List.of(QUOTE), List.of(DVWA)).scan(TARGET);
+
+        assertEquals(List.of(new Evidence(QUOTE, onlyRequest(), resposta)), detector.judged);
+    }
+
+    @Test
+    void semPositivoNaoReportaETentaTudo() {
+        List<Finding> findings = module(List.of(QUOTE, BOOL), List.of(SEARCH, DVWA)).scan(TARGET);
+
+        assertTrue(findings.isEmpty(), "findings: " + findings);
+        assertEquals(4, http.requests.size(), "2 pontos x 2 payloads");
+        assertEquals(List.of(QUOTE, BOOL, QUOTE, BOOL),
+                detector.judged.stream().map(Evidence::payload).toList());
+    }
+
+    @Test
+    void positivoViraFindingHighEParaNoPonto() {
+        detector.vulnerable = evidence -> evidence.payload().equals(QUOTE);
+        Payload time = payload("sqli-time-mysql-sleep", "1' AND SLEEP(5)-- -");
+
+        List<Finding> findings = module(List.of(QUOTE, BOOL, time), List.of(DVWA)).scan(TARGET);
+
+        assertEquals(1, http.requests.size(), "não envia os payloads restantes do ponto");
+        assertEquals(1, findings.size());
+        Finding finding = findings.get(0);
+        assertEquals(VulnType.SQL_INJECTION, finding.type());
+        assertEquals(Severity.HIGH, finding.severity());
+        assertSame(TARGET, finding.target());
+        assertSame(detector.judged.get(0), finding.evidence());
+        assertEquals(new Verdict(true, 0.9, "positivo fake", "fake"), finding.verdict());
+    }
+
+    @Test
+    void positivoEmUmPontoNaoImpedeOutro() {
+        detector.vulnerable = evidence -> evidence.payload().equals(BOOL);
+
+        List<Finding> findings = module(List.of(QUOTE, BOOL), List.of(SEARCH, DVWA)).scan(TARGET);
+
+        assertEquals(4, http.requests.size());
+        assertEquals(List.of(
+                        URI.create("http://localhost:8080/rest/products/search?q=%27+OR+%271%27%3D%271"),
+                        URI.create("http://localhost:8080/vulnerabilities/sqli/?Submit=Submit&id=%27+OR+%271%27%3D%271")),
+                findings.stream().map(f -> f.evidence().request().url()).toList());
+    }
+
+    @Test
+    void comHeuristicDetectorRealDetectaErroMysql() {
+        http.response = response("<pre>You have an error in your SQL syntax; check the manual that "
+                + "corresponds to your MariaDB server version</pre>");
+
+        List<Finding> findings = new SqlInjectionModule(http, new HeuristicDetector(), List.of(QUOTE, BOOL),
+                List.of(DVWA)).scan(TARGET);
+
+        assertEquals(1, findings.size());
+        assertTrue(findings.get(0).verdict().vulnerable());
+        assertEquals("heuristic", findings.get(0).verdict().detector());
     }
 
     private HttpRequest onlyRequest() {
