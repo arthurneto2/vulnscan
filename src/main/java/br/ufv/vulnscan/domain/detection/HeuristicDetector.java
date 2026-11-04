@@ -81,8 +81,12 @@ public final class HeuristicDetector implements Detector {
     private static Verdict judgeXss(Evidence evidence) {
         String body = Objects.requireNonNullElse(evidence.response().body(), "");
         String contentType = evidence.response().headers().get("content-type");
-        if (body.contains(evidence.payload().value()) && (contentType == null || contentType.contains("html"))) {
-            return new Verdict(true, 0.9, "payload refletido sem escape em resposta HTML", NAME);
+        if (body.contains(evidence.payload().value())) {
+            if (contentType == null || contentType.contains("html")) {
+                return new Verdict(true, 0.9, "payload refletido sem escape em resposta HTML", NAME);
+            }
+            return new Verdict(false, 0.5,
+                    "payload refletido, mas a resposta é " + contentType + ", não HTML", NAME);
         }
         return new Verdict(false, 0.6, "payload não refletido na resposta", NAME);
     }

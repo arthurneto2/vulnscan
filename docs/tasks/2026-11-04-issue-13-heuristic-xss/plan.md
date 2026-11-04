@@ -21,7 +21,7 @@ Verificação: `mvn test -Dtest=HeuristicDetectorTest`.
   - *Desvio:* passaram de primeira (o negativo padrão veio no green do passo 1). Mordida
     confirmada trocando a comparação por uma sem diferenciar maiúsculas.
 
-- [ ] **3. Fora de HTML.** `#xssCruEmJsonNaoEVulneravel` (0.5, cita o tipo).
+- [x] **3. Fora de HTML.** `#xssCruEmJsonNaoEVulneravel` (0.5, cita o tipo).
 
 - [ ] **4. Escapado.** `#xssEscapadoNaoEVulneravel` (corpo do Juice Shop `/redirect`, 0.8).
 

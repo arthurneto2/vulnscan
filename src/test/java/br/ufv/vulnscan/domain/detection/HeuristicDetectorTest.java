@@ -164,6 +164,16 @@ class HeuristicDetectorTest {
         assertFalse(verdict.vulnerable());
     }
 
+    @Test
+    void xssCruEmJsonNaoEVulneravel() {
+        Verdict verdict = detector.judge(xss(VulnType.XSS_REFLECTED, SVG,
+                "{\"orderId\":\"" + SVG + "\"}", "application/json; charset=utf-8"));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.5, verdict.confidence());
+        assertTrue(verdict.rationale().contains("application/json"), verdict.rationale());
+    }
+
     private static Evidence xss(VulnType type, String value, String body, String contentType) {
         Payload payload = new Payload("xss-svg-onload", type, value, "payload de teste");
         HttpRequest request = new HttpRequest("GET",
