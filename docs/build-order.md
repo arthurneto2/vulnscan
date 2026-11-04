@@ -79,7 +79,7 @@ seguir.
 - [ ] `experiments/ground_truth.yaml` com casos positivos E negativos dos três tipos.
 - [x] `BenchmarkRunner`: lê o gabarito, roda cada caso com cada detector N vezes, compara
       com a verdade, acumula VP/FP/VN/FN, calcula métricas, grava os CSVs.
-- [ ] Subcomando `benchmark` na CLI.
+- [x] Subcomando `benchmark` na CLI.
 - **Checkpoint:** `summary.csv` com matriz de confusão e métricas dos três tipos. ✅ em parte
   (2026-11-04): gerado no lab com o detector heurístico (8 VP / 6 VN, 0 FP / 0 FN nos 14
   casos). O lado LLM exige Ollama no ar; o subcomando `benchmark` da CLI é a #22.

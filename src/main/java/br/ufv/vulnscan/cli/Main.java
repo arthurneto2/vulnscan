@@ -2,6 +2,7 @@ package br.ufv.vulnscan.cli;
 
 import br.ufv.vulnscan.app.Config;
 import br.ufv.vulnscan.app.Container;
+import br.ufv.vulnscan.app.BenchmarkService;
 import br.ufv.vulnscan.app.ScanService;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -18,7 +19,7 @@ import java.util.function.Supplier;
  */
 @Command(name = "vulnscan",
         description = "Scanner de vulnerabilidades web (heurística vs LLM) para o laboratório local.",
-        subcommands = ScanCommand.class,
+        subcommands = {ScanCommand.class, BenchmarkCommand.class},
         exitCodeOnInvalidInput = Main.EXIT_USAGE,
         exitCodeOnExecutionException = Main.EXIT_EXECUTION)
 public final class Main implements Callable<Integer> {
@@ -34,13 +35,23 @@ public final class Main implements Callable<Integer> {
     private boolean help;
 
     private final Supplier<ScanService> scanService;
+    private final Supplier<BenchmarkService> benchmarkService;
 
     public Main() {
-        this(() -> new Container(Config.defaults()).scanService());
+        Container container = new Container(Config.defaults());
+        this.scanService = container::scanService;
+        this.benchmarkService = container::benchmarkService;
     }
 
     Main(Supplier<ScanService> scanService) {
+        this(scanService, () -> {
+            throw new UnsupportedOperationException("benchmarkService não injetado");
+        });
+    }
+
+    Main(Supplier<ScanService> scanService, Supplier<BenchmarkService> benchmarkService) {
         this.scanService = scanService;
+        this.benchmarkService = benchmarkService;
     }
 
     public static void main(String[] args) {
@@ -49,6 +60,10 @@ public final class Main implements Callable<Integer> {
 
     ScanService scanService() {
         return scanService.get();
+    }
+
+    BenchmarkService benchmarkService() {
+        return benchmarkService.get();
     }
 
     @Override
