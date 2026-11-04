@@ -175,7 +175,7 @@ public interface LlmClient {
     String complete(String prompt);
 }
 
-// port/ReportWriter.java  → adapters: Markdown / Json / Html
+// port/ReportWriter.java  → adapters: Markdown (md) / Json (json; Jackson, corpos truncados) / Html
 public interface ReportWriter {
     void write(ScanReport report, java.nio.file.Path output);
     String format();   // "md" | "json" | "html"

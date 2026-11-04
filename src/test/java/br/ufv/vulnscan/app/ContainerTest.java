@@ -128,6 +128,19 @@ class ContainerTest {
     }
 
     @Test
+    void formatoJsonGravaJson() throws IOException {
+        Path out = dir.resolve("report.json");
+        ScanService service = new Container(Config.defaults()).scanService();
+
+        service.scan(new ScanRequest(target(), List.of("sqli"), "json", out,
+                Map.of("Cookie", "PHPSESSID=abc; security=low")));
+
+        String json = Files.readString(out);
+        assertTrue(json.contains("\"findingCount\""), json);
+        assertTrue(json.contains("\"target\""), json);
+    }
+
+    @Test
     void moduloSmokeNaoExisteMais() {
         ScanService service = new Container(Config.defaults()).scanService();
 

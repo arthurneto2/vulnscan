@@ -17,6 +17,8 @@ Cada passo: teste → mínimo → refactor.
 - [x] **4. Truncamento + I/O.** `#corpoGrandeTruncado`, `#criaDiretorioPaiEUtf8`,
   `#erroDeIoViraUnchecked`. Green: truncar corpos; `Files.createDirectories`; UTF-8.
 
-- [ ] **5. Container + checkpoint.** Registrar `json` no `Container`;
+- [x] **5. Container + checkpoint.** Registrar `json` no `Container`;
   `ContainerTest#formatoJsonGravaJson`. `docs/contracts.md`. `mvn clean verify` verde.
   Marcar passos, commits, push.
+  - Feito: `mvn clean verify` com 263 testes verdes; `JsonReportWriterTest` (6, @TempDir) e
+    `ContainerTest#formatoJsonGravaJson`. `--format json` registrado no Container.
