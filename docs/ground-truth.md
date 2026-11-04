@@ -17,6 +17,7 @@ targets:
       - id: dvwa-sqli-id-param        # id único do caso
         type: SQL_INJECTION           # um valor de VulnType
         location: "/vulnerabilities/sqli/?id="   # rota ou campo atacado
+        security: low                 # nível do DVWA (opcional; distingue low/impossible no mesmo location)
         payload_ref: sqli-or-1-1      # id de um payload em payloads/ (opcional)
         vulnerable: true              # a verdade conhecida
         notes: "campo id injetável no nível de segurança 'low'"
@@ -40,6 +41,13 @@ targets:
         vulnerable: true
         notes: "acessa cesta de outro usuário trocando o id"
 ```
+
+## Campo `security` (opcional, DVWA)
+
+No DVWA, o mesmo `location` é vulnerável ou não conforme o nível (`low`, `medium`, `high`,
+`impossible`). Quando um caso depende do nível, informe-o em `security`; o `BenchmarkRunner`
+o usa para montar a sessão (cookie `security=<nível>`). Ausente, vale o nível corrente do
+alvo. No Juice Shop não se aplica.
 
 ## Regras para montar um bom gabarito
 
