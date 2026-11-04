@@ -37,8 +37,20 @@ import java.util.regex.Pattern;
  * </ol>
  * O contexto da injeção (atributo, script, comentário) e CSP não são analisados.
  *
- * <p>Autenticação/autorização ainda não têm regras (issue #15) e recebem veredito negativo
- * com confiança 0. Nunca lança exceção por causa do tipo.
+ * <p>Regras de autenticação/autorização ({@code BROKEN_AUTH} e {@code BROKEN_ACCESS_CONTROL},
+ * as mesmas), sobre a resposta de uma requisição que o módulo montou para ser indevida (sem
+ * token, ou com token de outro usuário/papel), na ordem:
+ * <ol>
+ *   <li>401/403 → bloqueado como esperado, não vulnerável;</li>
+ *   <li>3xx com {@code login} no header {@code location} → redirecionado para o login, não
+ *       vulnerável;</li>
+ *   <li>2xx com corpo não vazio ({@code strip()} diferente de {@code ""}, {@code {}},
+ *       {@code []}) → acesso concedido onde se esperava bloqueio, vulnerável; corpo vazio →
+ *       sem dado exposto, não vulnerável;</li>
+ *   <li>outro status (404, 5xx) → inconclusivo, não vulnerável.</li>
+ * </ol>
+ * Não distingue dado sensível de dado qualquer além de "corpo vazio". Nunca lança exceção
+ * por causa do tipo.
  */
 public final class HeuristicDetector implements Detector {
 
@@ -49,12 +61,16 @@ public final class HeuristicDetector implements Detector {
     private static final double SQL_ERROR_CONFIDENCE = 0.9;
     private static final double TIME_DELAY_CONFIDENCE = 0.8;
     private static final double NO_SIGNAL_CONFIDENCE = 0.6;
-    private static final double NO_RULES_CONFIDENCE = 0.0;
     private static final double XSS_DIALOG_CONFIDENCE = 0.95;
     private static final double XSS_RAW_HTML_CONFIDENCE = 0.9;
     private static final double XSS_ESCAPED_CONFIDENCE = 0.8;
     private static final double XSS_NOT_REFLECTED_CONFIDENCE = 0.6;
     private static final double XSS_NOT_HTML_CONFIDENCE = 0.5;
+    private static final double AUTH_BLOCKED_CONFIDENCE = 0.85;
+    private static final double AUTH_LOGIN_REDIRECT_CONFIDENCE = 0.7;
+    private static final double AUTH_GRANTED_CONFIDENCE = 0.7;
+    private static final double AUTH_EMPTY_BODY_CONFIDENCE = 0.5;
+    private static final double AUTH_INCONCLUSIVE_CONFIDENCE = 0.6;
 
     /** Assinaturas de erro de banco por SGBD, testadas na ordem. */
     private static final Map<String, Pattern> SQL_ERRORS = new LinkedHashMap<>();
@@ -73,8 +89,7 @@ public final class HeuristicDetector implements Detector {
         return switch (evidence.payload().type()) {
             case SQL_INJECTION -> judgeSqlInjection(evidence);
             case XSS_REFLECTED, XSS_STORED -> judgeXss(evidence);
-            case BROKEN_AUTH, BROKEN_ACCESS_CONTROL -> new Verdict(false,
-                    NO_RULES_CONFIDENCE, "sem regras heurísticas para " + evidence.payload().type(), NAME);
+            case BROKEN_AUTH, BROKEN_ACCESS_CONTROL -> judgeAuth(evidence);
         };
     }
 
@@ -98,6 +113,30 @@ public final class HeuristicDetector implements Detector {
         }
         return new Verdict(false, NO_SIGNAL_CONFIDENCE,
                 "nenhuma assinatura de erro de SQL nem atraso temporal", NAME);
+    }
+
+    private static Verdict judgeAuth(Evidence evidence) {
+        int status = evidence.response().status();
+        if (status == 401 || status == 403) {
+            return new Verdict(false, AUTH_BLOCKED_CONFIDENCE,
+                    "acesso negado como esperado (status " + status + ")", NAME);
+        }
+        String location = Objects.requireNonNullElse(evidence.response().headers().get("location"), "");
+        if (status >= 300 && status < 400 && location.toLowerCase().contains("login")) {
+            return new Verdict(false, AUTH_LOGIN_REDIRECT_CONFIDENCE,
+                    "redirecionado para a tela de login (status " + status + ")", NAME);
+        }
+        if (status >= 200 && status < 300) {
+            String body = Objects.requireNonNullElse(evidence.response().body(), "").strip();
+            if (body.isEmpty() || body.equals("{}") || body.equals("[]")) {
+                return new Verdict(false, AUTH_EMPTY_BODY_CONFIDENCE,
+                        "resposta " + status + " com corpo vazio: sem dado exposto", NAME);
+            }
+            return new Verdict(true, AUTH_GRANTED_CONFIDENCE,
+                    "acesso concedido (status " + status + ") onde se esperava 401/403", NAME);
+        }
+        return new Verdict(false, AUTH_INCONCLUSIVE_CONFIDENCE,
+                "status " + status + " inconclusivo para autenticação/autorização", NAME);
     }
 
     private static Verdict judgeXss(Evidence evidence) {

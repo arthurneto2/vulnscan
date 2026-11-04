@@ -54,7 +54,7 @@ seguir.
 
 - [ ] `ApiAuthModule`: acesso sem token, com token de outro usuário (IDOR) e papel
       indevido.
-- [ ] Regras de auth/acesso no `HeuristicDetector` (ex.: 200 + dado sensível onde se
+- [x] Regras de auth/acesso no `HeuristicDetector` (ex.: 200 + dado sensível onde se
       esperava 401/403).
 - **Checkpoint:** acesso indevido e IDOR detectados.
 

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.net.URI;
 import java.util.Map;
@@ -113,13 +114,23 @@ class HeuristicDetectorTest {
 
     @ParameterizedTest
     @EnumSource(value = VulnType.class, names = {"BROKEN_AUTH", "BROKEN_ACCESS_CONTROL"})
-    void tipoSemRegrasNaoEVulneravel(VulnType type) {
-        Verdict verdict = detector.judge(evidence(type, "outro", "You have an error in your SQL syntax", 40));
+    void acessoConcedidoEVulneravel(VulnType type) {
+        Verdict verdict = detector.judge(auth(type, 200, "{\"config\":{\"server\":{\"port\":3000}}}", Map.of()));
+
+        assertTrue(verdict.vulnerable(), verdict.rationale());
+        assertEquals(0.7, verdict.confidence());
+        assertTrue(verdict.rationale().contains("200"), verdict.rationale());
+        assertEquals("heuristic", verdict.detector());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {401, 403})
+    void bloqueadoNaoEVulneravel(int status) {
+        Verdict verdict = detector.judge(auth(VulnType.BROKEN_AUTH, status, "Unauthorized", Map.of()));
 
         assertFalse(verdict.vulnerable());
-        assertEquals(0.0, verdict.confidence());
-        assertTrue(verdict.rationale().contains(type.name()), verdict.rationale());
-        assertEquals("heuristic", verdict.detector());
+        assertEquals(0.85, verdict.confidence());
+        assertTrue(verdict.rationale().contains(String.valueOf(status)), verdict.rationale());
     }
 
     @ParameterizedTest
@@ -220,6 +231,57 @@ class HeuristicDetectorTest {
         HttpRequest request = new HttpRequest("GET",
                 URI.create("http://localhost:8080/vulnerabilities/xss_r/?name=x"), Map.of(), null);
         return new Evidence(payload, request, new HttpResponse(200, headers, body, 5));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   ", "{}", "[]", " {} "})
+    void respostaVaziaNaoEVulneravel(String body) {
+        Verdict verdict = detector.judge(auth(VulnType.BROKEN_AUTH, 200, body, Map.of()));
+
+        assertFalse(verdict.vulnerable(), "corpo: [" + body + "]");
+        assertEquals(0.5, verdict.confidence());
+        assertTrue(verdict.rationale().contains("corpo vazio"), verdict.rationale());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {404, 500})
+    void statusInconclusivoNaoEVulneravel(int status) {
+        Verdict verdict = detector.judge(auth(VulnType.BROKEN_ACCESS_CONTROL, status, "erro", Map.of()));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.6, verdict.confidence());
+        assertTrue(verdict.rationale().contains("inconclusivo"), verdict.rationale());
+    }
+
+    @Test
+    void redirecionadoParaLoginNaoEVulneravel() {
+        Verdict verdict = detector.judge(auth(VulnType.BROKEN_AUTH, 302, "",
+                Map.of("location", "../../login.php")));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.7, verdict.confidence());
+        assertTrue(verdict.rationale().contains("login"), verdict.rationale());
+    }
+
+    @Test
+    void redirectSemLoginEInconclusivo() {
+        Verdict verdict = detector.judge(auth(VulnType.BROKEN_AUTH, 302, "",
+                Map.of("location", "/home")));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.6, verdict.confidence());
+    }
+
+    @Test
+    void corpoNuloNoAcessoNaoLanca() {
+        assertFalse(detector.judge(auth(VulnType.BROKEN_ACCESS_CONTROL, 200, null, Map.of())).vulnerable());
+    }
+
+    private static Evidence auth(VulnType type, int status, String body, Map<String, String> headers) {
+        Payload payload = new Payload("auth-caso", type, "sem-token", "payload de teste");
+        HttpRequest request = new HttpRequest("GET",
+                URI.create("http://localhost:3000/rest/basket/2"), Map.of(), null);
+        return new Evidence(payload, request, new HttpResponse(status, headers, body, 5));
     }
 
     private static Evidence sqli(String body, long elapsedMillis) {
