@@ -186,11 +186,39 @@ class HeuristicDetectorTest {
         assertTrue(verdict.rationale().contains("escape"), verdict.rationale());
     }
 
+    @ParameterizedTest
+    @EnumSource(value = VulnType.class, names = {"XSS_REFLECTED", "XSS_STORED"})
+    void dialogoComMarcadorEVulneravel(VulnType type) {
+        String normalizado = "<img src=\"x\" onerror=\"alert('vsx1a2b3c4d')\">";
+        Evidence evidence = xssWithHeaders(type, "<img src=x onerror=alert('vsx1a2b3c4d')>", normalizado,
+                Map.of("content-type", "text/html", HttpResponse.DIALOGS_HEADER, "outro, vsx1a2b3c4d"));
+
+        Verdict verdict = detector.judge(evidence);
+
+        assertTrue(verdict.vulnerable(), verdict.rationale());
+        assertEquals(0.95, verdict.confidence());
+        assertTrue(verdict.rationale().contains("navegador executou"), verdict.rationale());
+    }
+
+    @Test
+    void dialogoSemMarcadorSegueRegrasDoCorpo() {
+        Evidence evidence = xssWithHeaders(VulnType.XSS_STORED, SVG, "<p>nada</p>",
+                Map.of("content-type", "text/html", HttpResponse.DIALOGS_HEADER, "Tem certeza?"));
+
+        Verdict verdict = detector.judge(evidence);
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.6, verdict.confidence());
+    }
+
     private static Evidence xss(VulnType type, String value, String body, String contentType) {
+        return xssWithHeaders(type, value, body, contentType == null ? Map.of() : Map.of("content-type", contentType));
+    }
+
+    private static Evidence xssWithHeaders(VulnType type, String value, String body, Map<String, String> headers) {
         Payload payload = new Payload("xss-svg-onload", type, value, "payload de teste");
         HttpRequest request = new HttpRequest("GET",
                 URI.create("http://localhost:8080/vulnerabilities/xss_r/?name=x"), Map.of(), null);
-        Map<String, String> headers = contentType == null ? Map.of() : Map.of("content-type", contentType);
         return new Evidence(payload, request, new HttpResponse(200, headers, body, 5));
     }
 

@@ -27,7 +27,12 @@ record HttpRequest(String method, java.net.URI url,
                    java.util.Map<String, String> headers, String body) {}
 
 record HttpResponse(int status, java.util.Map<String, String> headers,
-                    String body, long elapsedMillis) {}
+                    String body, long elapsedMillis) {
+    // Resposta sintética de módulo com navegador: status 200, corpo = DOM renderizado,
+    // content-type text/html e, se houve alert/confirm/prompt, este pseudo-header com os
+    // textos juntados por ", ". O HeuristicDetector trata diálogo com o marcador como XSS.
+    static final String DIALOGS_HEADER = "x-vulnscan-dialogs";
+}
 
 // O que um Detector recebe para julgar: o payload aplicado e a troca HTTP resultante.
 record Evidence(Payload payload, HttpRequest request, HttpResponse response) {}

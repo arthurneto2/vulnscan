@@ -6,7 +6,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
 
 ## Passos
 
-- [ ] **1. Regra 0 do detector.** `HttpResponse.DIALOGS_HEADER`. `HeuristicDetectorTest`:
+- [x] **1. Regra 0 do detector.** `HttpResponse.DIALOGS_HEADER`. `HeuristicDetectorTest`:
   `#dialogoComMarcadorEVulneravel` (parametrizado refletido/armazenado),
   `#dialogoSemMarcadorSegueRegrasDoCorpo`. Atualizar `docs/contracts.md`.
   Verificar: `mvn test -Dtest=HeuristicDetectorTest`.
