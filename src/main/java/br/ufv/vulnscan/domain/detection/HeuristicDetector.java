@@ -104,6 +104,10 @@ public final class HeuristicDetector implements Detector {
         if (status == 401 || status == 403) {
             return new Verdict(false, 0.85, "acesso negado como esperado (status " + status + ")", NAME);
         }
+        String location = Objects.requireNonNullElse(evidence.response().headers().get("location"), "");
+        if (status >= 300 && status < 400 && location.toLowerCase().contains("login")) {
+            return new Verdict(false, 0.7, "redirecionado para a tela de login (status " + status + ")", NAME);
+        }
         if (status >= 200 && status < 300) {
             String body = Objects.requireNonNullElse(evidence.response().body(), "").strip();
             if (body.isEmpty() || body.equals("{}") || body.equals("[]")) {

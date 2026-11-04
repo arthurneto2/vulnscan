@@ -20,7 +20,7 @@ Verificação: `mvn test -Dtest=HeuristicDetectorTest`.
 - [x] **2. Corpo vazio no 2xx.** `#respostaVaziaNaoEVulneravel` (parametrizado `""`, `{}`,
   `[]`, corpo nulo). Green: regra 3 do corpo trivial.
 
-- [ ] **3. Redirecionado para login.** `#redirecionadoParaLoginNaoEVulneravel` (302 +
+- [x] **3. Redirecionado para login.** `#redirecionadoParaLoginNaoEVulneravel` (302 +
   `location`), `#redirectSemLoginEInconclusivo` (302 sem login). Green: regra 2.
 
 - [ ] **4. Inconclusivo.** `#statusInconclusivoNaoEVulneravel` (parametrizado 404, 500).

@@ -244,6 +244,25 @@ class HeuristicDetectorTest {
     }
 
     @Test
+    void redirecionadoParaLoginNaoEVulneravel() {
+        Verdict verdict = detector.judge(auth(VulnType.BROKEN_AUTH, 302, "",
+                Map.of("location", "../../login.php")));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.7, verdict.confidence());
+        assertTrue(verdict.rationale().contains("login"), verdict.rationale());
+    }
+
+    @Test
+    void redirectSemLoginEInconclusivo() {
+        Verdict verdict = detector.judge(auth(VulnType.BROKEN_AUTH, 302, "",
+                Map.of("location", "/home")));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.6, verdict.confidence());
+    }
+
+    @Test
     void corpoNuloNoAcessoNaoLanca() {
         assertFalse(detector.judge(auth(VulnType.BROKEN_ACCESS_CONTROL, 200, null, Map.of())).vulnerable());
     }
