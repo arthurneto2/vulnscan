@@ -11,7 +11,7 @@ Verificação: `mvn test -Dtest=HeuristicDetectorTest`.
 
 ## Passos
 
-- [ ] **1. Refletido cru em HTML.** `#xssCruEmHtmlEVulneravel` (parametrizado:
+- [x] **1. Refletido cru em HTML.** `#xssCruEmHtmlEVulneravel` (parametrizado:
   `XSS_REFLECTED`, `XSS_STORED`), `#xssCruSemContentTypeEVulneravel`. Ajustar
   `#tipoSemRegrasNaoEVulneravel` para só `BROKEN_*`. Green: ramo de XSS com a regra 1 e o
   negativo padrão.

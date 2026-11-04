@@ -50,7 +50,8 @@ public final class HeuristicDetector implements Detector {
         Objects.requireNonNull(evidence, "evidence");
         return switch (evidence.payload().type()) {
             case SQL_INJECTION -> judgeSqlInjection(evidence);
-            case XSS_REFLECTED, XSS_STORED, BROKEN_AUTH, BROKEN_ACCESS_CONTROL -> new Verdict(false,
+            case XSS_REFLECTED, XSS_STORED -> judgeXss(evidence);
+            case BROKEN_AUTH, BROKEN_ACCESS_CONTROL -> new Verdict(false,
                     NO_RULES_CONFIDENCE, "sem regras heurísticas para " + evidence.payload().type(), NAME);
         };
     }
@@ -75,6 +76,15 @@ public final class HeuristicDetector implements Detector {
         }
         return new Verdict(false, NO_SIGNAL_CONFIDENCE,
                 "nenhuma assinatura de erro de SQL nem atraso temporal", NAME);
+    }
+
+    private static Verdict judgeXss(Evidence evidence) {
+        String body = Objects.requireNonNullElse(evidence.response().body(), "");
+        String contentType = evidence.response().headers().get("content-type");
+        if (body.contains(evidence.payload().value()) && (contentType == null || contentType.contains("html"))) {
+            return new Verdict(true, 0.9, "payload refletido sem escape em resposta HTML", NAME);
+        }
+        return new Verdict(false, 0.6, "payload não refletido na resposta", NAME);
     }
 
     /** Casa qualquer um dos textos literais, sem diferenciar maiúsculas. */
