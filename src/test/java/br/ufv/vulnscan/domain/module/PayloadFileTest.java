@@ -4,9 +4,13 @@ import br.ufv.vulnscan.domain.model.Payload;
 import br.ufv.vulnscan.domain.model.VulnType;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -53,5 +57,21 @@ class PayloadFileTest {
                 () -> PayloadFile.parse("sqli-a\t1'\tx\nsqli-a\t1\"\ty\n", VulnType.SQL_INJECTION));
 
         assertTrue(e.getMessage().contains("linha 2") && e.getMessage().contains("sqli-a"), e.getMessage());
+    }
+
+    @Test
+    void arquivoSqliDoClasspathTemAspasBooleanoETemporal() throws IOException {
+        List<Payload> payloads;
+        try (InputStream in = PayloadFileTest.class.getResourceAsStream("/payloads/sqli.txt")) {
+            assertNotNull(in, "recurso /payloads/sqli.txt ausente");
+            payloads = PayloadFile.parse(new String(in.readAllBytes(), StandardCharsets.UTF_8),
+                    VulnType.SQL_INJECTION);
+        }
+
+        assertTrue(payloads.size() >= 5, "payloads: " + payloads);
+        assertTrue(payloads.stream().anyMatch(p -> p.id().startsWith("sqli-quote-")), "aspas");
+        assertTrue(payloads.stream().anyMatch(p -> p.id().startsWith("sqli-bool-")), "booleano");
+        Payload last = payloads.get(payloads.size() - 1);
+        assertTrue(last.id().startsWith("sqli-time-"), "o temporal vem por último: " + last);
     }
 }

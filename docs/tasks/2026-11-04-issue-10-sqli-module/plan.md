@@ -15,7 +15,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   `#ignoraVaziasEComentarios`, `#linhaMalformadaCitaNumeroDaLinha`,
   `#idRepetidoFalha`, `#campoVazioFalha`. Verificar: `mvn test -Dtest=PayloadFileTest`.
 
-- [ ] **3. `sqli.txt`.** `PayloadFileTest#arquivoSqliDoClasspathTemAspasBooleanoETemporal`
+- [x] **3. `sqli.txt`.** `PayloadFileTest#arquivoSqliDoClasspathTemAspasBooleanoETemporal`
   (lê `/payloads/sqli.txt` via `getResourceAsStream`). Green: criar o arquivo.
 
 - [ ] **4. `InjectionPoint` + envio de requisições.** `SqlInjectionModuleTest` com

