@@ -5,7 +5,7 @@ Pacote: `br.ufv.vulnscan.app.benchmark`. Cada passo: teste → mínimo → refac
 
 ## Passos
 
-- [ ] **1. Métricas (puro).** `MetricsTest`: `Outcome.of`, precisão/recall/F1/FPR (inclui
+- [x] **1. Métricas (puro).** `MetricsTest`: `Outcome.of`, precisão/recall/F1/FPR (inclui
   denominador 0), agregação por tipo/total. Green: `Outcome`, `ConfusionMatrix`, `Metrics`.
 
 - [ ] **2. Gabarito em records.** `GroundTruthLoaderTest` lê `experiments/ground_truth.yaml`.
