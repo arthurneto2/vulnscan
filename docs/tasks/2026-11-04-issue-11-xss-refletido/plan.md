@@ -15,7 +15,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
 - [x] **2. `xss.txt`.** `PayloadFileTest#arquivoXssDoClasspathTemMarcadorEmTodos`. Green:
   criar o arquivo.
 
-- [ ] **3. `XssModule`: requisições e marcador.** `XssModuleTest` (fakes de
+- [x] **3. `XssModule`: requisições e marcador.** `XssModuleTest` (fakes de
   `HttpClient`, `Detector` e `Supplier<String>` sequencial `m1`, `m2`, ...):
   `#typeEXssRefletido`, `#enviaGetComMarcadorSubstituidoECodificado`,
   `#enviaHeadersDoAlvo`, `#cadaRequisicaoUsaMarcadorNovo`,
