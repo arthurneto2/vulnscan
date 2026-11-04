@@ -22,7 +22,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   - *Refactor:* `MarkedPayloads` (validação e troca do `{marker}`, do pacote) passa a ser
     usado pelo `XssModule` também; resposta sintética em `RenderedPage.toResponse()`.
 
-- [ ] **4. `StoredXssPoint` e `StoredXssModule`.** `StoredXssModuleTest`:
+- [x] **4. `StoredXssPoint` e `StoredXssModule`.** `StoredXssModuleTest`:
   `#typeEXssArmazenado`, `#postaFormularioComPayloadEHeaders`,
   `#abreAPaginaDeVisualizacaoDepoisDoPost`, `#evidenciaTemOPostEAPaginaRenderizada`,
   `#positivoViraFindingHighEParaNoPonto`, `#erroDoHttpPropaga`,
