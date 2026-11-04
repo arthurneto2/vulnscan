@@ -14,11 +14,13 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
 - [x] **2. `RenderedPage` e `XssBrowser`.** `RenderedPageTest#dialogosCopiadosEImutaveis`,
   `#dialogosNulosViramVazio`.
 
-- [ ] **3. `DomXssModule`.** `DomXssModuleTest`: `#typeEXssRefletido`,
+- [x] **3. `DomXssModule`.** `DomXssModuleTest`: `#typeEXssRefletido`,
   `#abreUrlComFragmentoEMarcador`, `#passaHeadersDoAlvoAoNavegador`,
   `#respostaSinteticaComDomEDialogos`, `#semDialogoNaoPoeHeader`,
   `#cadaAberturaUsaMarcadorNovo`, `#positivoViraFindingMediumEParaNoPonto`,
   `#erroDoNavegadorPropaga`, validações do construtor.
+  - *Refactor:* `MarkedPayloads` (validação e troca do `{marker}`, do pacote) passa a ser
+    usado pelo `XssModule` também; resposta sintética em `RenderedPage.toResponse()`.
 
 - [ ] **4. `StoredXssPoint` e `StoredXssModule`.** `StoredXssModuleTest`:
   `#typeEXssArmazenado`, `#postaFormularioComPayloadEHeaders`,
