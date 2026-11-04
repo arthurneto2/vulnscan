@@ -4,7 +4,7 @@ Spec: `spec.md` nesta pasta. Branch: `issue-16-modelo-llm`.
 
 ## Passos
 
-- [ ] **1. Config com Ollama (TDD).** `ConfigTest#defaultsFixaModeloEUrlDoOllama` (red:
+- [x] **1. Config com Ollama (TDD).** `ConfigTest#defaultsFixaModeloEUrlDoOllama` (red:
   `defaults()` ainda não tem os campos). Green: `Config(httpTimeout, ollamaBaseUrl,
   ollamaModel)` com constantes e `defaults()` atualizado. Ajustar `docs/contracts.md`.
   Verificar: `mvn test -Dtest=ConfigTest`.
