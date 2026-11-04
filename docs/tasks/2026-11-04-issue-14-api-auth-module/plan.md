@@ -20,7 +20,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
 - [x] **4. Erros e validações.** `#erroDoHttpPropaga`, `#erroDaSessaoPropaga`,
   `#construtorRejeitaNulos`, `#construtorRejeitaProbesVazios`. Javadoc. `docs/contracts.md`.
 
-- [ ] **5. `JuiceShopSession` (adaptador).** `JuiceShopSessionTest` com `HttpServer` do JDK:
+- [x] **5. `JuiceShopSession` (adaptador).** `JuiceShopSessionTest` com `HttpServer` do JDK:
   `#registraELogaDevolvendoTokenEBid`, `#loginSemTokenLancaIllegalState`. Jackson no parse.
 
 - [ ] **6. `Container` + CLI.** `ContainerTest#apiNosModulosDisponiveis`. `docs/cli.md`.
