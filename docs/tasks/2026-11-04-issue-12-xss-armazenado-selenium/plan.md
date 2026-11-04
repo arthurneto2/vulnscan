@@ -28,7 +28,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   `#positivoViraFindingHighEParaNoPonto`, `#erroDoHttpPropaga`,
   `#erroDoNavegadorPropaga`, validações. Atualizar `docs/contracts.md`.
 
-- [ ] **5. `SeleniumBrowser`.** `SeleniumBrowserTest` (servidor do JDK em porta efêmera;
+- [x] **5. `SeleniumBrowser`.** `SeleniumBrowserTest` (servidor do JDK em porta efêmera;
   `assumeTrue` se o Chrome não subir): `#devolveDomDepoisDoJavascript`,
   `#capturaTextoDoAlert`, `#enviaCookieDoHeader`.
 
