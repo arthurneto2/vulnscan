@@ -21,6 +21,8 @@ import br.ufv.vulnscan.domain.module.SqlInjectionModule;
 import br.ufv.vulnscan.domain.module.StoredXssModule;
 import br.ufv.vulnscan.domain.module.StoredXssPoint;
 import br.ufv.vulnscan.domain.module.VulnModule;
+import br.ufv.vulnscan.app.benchmark.CaseRunner;
+import br.ufv.vulnscan.app.benchmark.LabCaseRunner;
 import br.ufv.vulnscan.domain.module.XssBrowser;
 import br.ufv.vulnscan.domain.module.XssModule;
 import br.ufv.vulnscan.port.HttpClient;
@@ -87,6 +89,15 @@ public final class Container {
 
     public ScanService scanService() {
         return new ScanService(moduleFactories(), detectors(), writers());
+    }
+
+    /** Caso de uso do experimento: LabCaseRunner com os dois detectores sobre os módulos reais. */
+    public BenchmarkService benchmarkService() {
+        CaseRunner runner = new LabCaseRunner(detectors(), httpClient, browser, apiSession,
+                payloads(SQLI_PAYLOADS, VulnType.SQL_INJECTION),
+                payloads(XSS_PAYLOADS, VulnType.XSS_REFLECTED),
+                payloads(XSS_PAYLOADS, VulnType.XSS_STORED), Container::newMarker);
+        return new BenchmarkService(runner, List.of("heuristic", "llm"));
     }
 
     /** Detectores por nome: heurístico (puro) e LLM (Ollama com o modelo fixado em Config). */

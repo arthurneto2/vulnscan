@@ -220,10 +220,21 @@ public record Config(java.time.Duration httpTimeout, java.net.URI ollamaBaseUrl,
     public static Config defaults() { ... }   // 30 s, http://localhost:11434, mistral:7b-instruct-v0.3-q4_0
 }
 
+// app/BenchmarkRequest.java — pedido de benchmark da CLI. runs ≤ 0 → 3; outDir nulo → experiments/results.
+public record BenchmarkRequest(java.nio.file.Path groundTruth, int runs, java.nio.file.Path outDir) {}
+
+// app/BenchmarkService.java — caso de uso do experimento. Valida (gabarito existe), carrega o
+// GroundTruth, roda o BenchmarkRunner com os detectores dados e devolve o caminho do summary.csv.
+public final class BenchmarkService {
+    public BenchmarkService(br.ufv.vulnscan.app.benchmark.CaseRunner runner, java.util.List<String> detectors) { ... }
+    public java.nio.file.Path run(BenchmarkRequest request) { ... }
+}
+
 // app/Container.java — raiz de composição: instancia adaptadores e injeta nos módulos.
 public final class Container {
     public Container(Config config) { ... }
     public ScanService scanService() { ... }
+    public BenchmarkService benchmarkService() { ... }   // LabCaseRunner + detectores heuristic/llm
 }
 ```
 
