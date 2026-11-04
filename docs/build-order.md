@@ -52,11 +52,14 @@ seguir.
 
 ## Fase 4 — API REST (autenticação/autorização)
 
-- [ ] `ApiAuthModule`: acesso sem token, com token de outro usuário (IDOR) e papel
-      indevido.
+- [x] `ApiAuthModule`: acesso sem token, com token de outro usuário (IDOR) e papel
+      indevido. Login do Juice Shop atrás de `ApiSession` (adaptador `JuiceShopSession`).
 - [x] Regras de auth/acesso no `HeuristicDetector` (ex.: 200 + dado sensível onde se
       esperava 401/403).
-- **Checkpoint:** acesso indevido e IDOR detectados.
+- **Checkpoint:** acesso indevido e IDOR detectados. ✅ (2026-11-04) `scan --module api`
+  no Juice Shop → 3 achados: BROKEN_AUTH (admin-config sem token), BROKEN_ACCESS_CONTROL
+  (IDOR de cesta e `/api/Users` com usuário comum). Negativos (sem token → 401, papel → 403)
+  sem achado.
 
 ## Fase 5 — Camada de IA
 
