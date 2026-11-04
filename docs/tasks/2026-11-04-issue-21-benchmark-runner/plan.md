@@ -11,7 +11,7 @@ Pacote: `br.ufv.vulnscan.app.benchmark`. Cada passo: teste → mínimo → refac
 - [x] **2. Gabarito em records.** `GroundTruthLoaderTest` lê `experiments/ground_truth.yaml`.
   Green: records + `load(Path)` (Jackson YAML). Adicionar `auth_mode` ao YAML e ao doc.
 
-- [ ] **3. BenchmarkRunner + CSVs.** `BenchmarkRunnerTest` com `CaseRunner` fake e `@TempDir`:
+- [x] **3. BenchmarkRunner + CSVs.** `BenchmarkRunnerTest` com `CaseRunner` fake e `@TempDir`:
   `run-<n>.csv` e `summary.csv`, contagens/métricas/linhas; erro vira `outcome=ERRO`.
   Green: `CaseRunner`/`CaseResult`, `BenchmarkRunner`, escrita de CSV.
 
