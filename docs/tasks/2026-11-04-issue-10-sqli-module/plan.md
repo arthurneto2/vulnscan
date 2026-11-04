@@ -35,7 +35,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
 - [x] **7. Headers no `ScanRequest`/`ScanService`.** `ScanServiceTest#passaHeadersAoTarget`
   (módulo fake grava o `Target`). Green: componente + construtor de 4 argumentos.
 
-- [ ] **8. `--header` na CLI.** `MainTest#headerRepetivelChegaAoScanRequest`,
+- [x] **8. `--header` na CLI.** `MainTest#headerRepetivelChegaAoScanRequest`,
   `#headerSemDoisPontosSai1`, `#headerRepetidoJuntaPorVirgula`. Atualizar `docs/cli.md`.
   Verificar: `mvn test -Dtest=MainTest`.
 

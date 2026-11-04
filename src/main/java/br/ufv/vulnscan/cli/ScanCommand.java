@@ -12,7 +12,9 @@ import picocli.CommandLine.Spec;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 
@@ -45,6 +47,10 @@ final class ScanCommand implements Callable<Integer> {
             description = "Módulo a rodar (sqli, xss, api); repetível. Padrão: todos.")
     private List<String> modules = new ArrayList<>();
 
+    @Option(names = "--header", paramLabel = "<nome: valor>",
+            description = "Header enviado em toda requisição ao alvo, ex.: \"Cookie: PHPSESSID=...; security=low\"; repetível.")
+    private List<String> headers = new ArrayList<>();
+
     @Option(names = "--format", defaultValue = "md", paramLabel = "<fmt>",
             description = "Formato do relatório. Padrão: ${DEFAULT-VALUE}.")
     private String format;
@@ -62,7 +68,8 @@ final class ScanCommand implements Callable<Integer> {
                     "aviso: o alvo %s não é localhost; o vulnscan é para o laboratório local.%n", host);
         }
         try {
-            ScanReport report = main.scanService().scan(new ScanRequest(target, modules, format, output));
+            ScanReport report = main.scanService().scan(
+                    new ScanRequest(target, modules, format, output, parseHeaders(headers)));
             spec.commandLine().getOut().printf("Scan concluído: %d achado(s). Relatório: %s%n",
                     report.findings().size(), output);
             return Main.EXIT_OK;
@@ -71,6 +78,25 @@ final class ScanCommand implements Callable<Integer> {
         } catch (RuntimeException e) {
             return error(e, Main.EXIT_EXECUTION);
         }
+    }
+
+    /**
+     * {@code "Nome: valor"} → mapa na ordem dada; nome e valor aparados; nome repetido junta
+     * os valores por {@code ", "}. Sem {@code :} ou com nome vazio → erro de uso.
+     */
+    private static Map<String, String> parseHeaders(List<String> raw) {
+        Map<String, String> parsed = new LinkedHashMap<>();
+        for (String header : raw) {
+            int colon = header.indexOf(':');
+            String name = colon < 0 ? "" : header.substring(0, colon).strip();
+            if (name.isEmpty()) {
+                throw new InvalidScanRequestException(
+                        "header inválido: \"" + header + "\" (use \"Nome: valor\")");
+            }
+            String value = header.substring(colon + 1).strip();
+            parsed.merge(name, value, (first, second) -> first + ", " + second);
+        }
+        return parsed;
     }
 
     /** localhost, 127.0.0.0/8 ou [::1] — por texto, sem resolução DNS. */

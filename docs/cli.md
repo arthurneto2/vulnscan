@@ -5,20 +5,23 @@ Implementada com picocli em `cli/Main.java`. Dois subcomandos: `scan` e `benchma
 ## `scan` — roda um ou mais módulos contra um alvo
 
 ```
-vulnscan scan --target <url> [--module <nome>]... [--detector heuristic|llm|both]
-              [--format md|json|html] [--out <arquivo>]
+vulnscan scan --target <url> [--module <nome>]... [--header "<nome>: <valor>"]...
+              [--detector heuristic|llm|both] [--format md|json|html] [--out <arquivo>]
 ```
 
 | Opção        | Default        | Descrição                                            |
 | ------------ | -------------- | ---------------------------------------------------- |
 | `--target`   | (obrigatório)  | URL base do alvo, ex.: `http://localhost:3000`       |
 | `--module`   | todos          | `sqli`, `xss`, `api` — repetível                     |
+| `--header`   | nenhum         | header enviado em toda requisição ao alvo; repetível. Nome repetido junta valores por `, `. Sem `:` ou nome vazio → saída 1 |
 | `--detector` | `heuristic`    | qual estratégia usar no veredito                     |
 | `--format`   | `md`           | formato do relatório de saída                        |
 | `--out`      | `report.<fmt>` | caminho do arquivo de saída                          |
 
-Exemplo:
+Exemplos:
 ```
+vulnscan scan --target http://localhost:8080 --module sqli \
+              --header "Cookie: PHPSESSID=<sessão>; security=low"
 vulnscan scan --target http://localhost:3000 --module xss --detector both --format html
 ```
 
