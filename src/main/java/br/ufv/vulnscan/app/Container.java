@@ -10,6 +10,7 @@ import br.ufv.vulnscan.domain.module.InjectionPoint;
 import br.ufv.vulnscan.domain.module.PayloadFile;
 import br.ufv.vulnscan.domain.module.SqlInjectionModule;
 import br.ufv.vulnscan.domain.module.VulnModule;
+import br.ufv.vulnscan.domain.module.XssModule;
 import br.ufv.vulnscan.port.HttpClient;
 import br.ufv.vulnscan.port.ReportWriter;
 
@@ -20,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Aplicação: raiz de composição. Instancia os adaptadores e injeta nos módulos à mão,
@@ -33,7 +35,13 @@ public final class Container {
             new InjectionPoint("/vulnerabilities/sqli/?Submit=Submit", "id"),
             new InjectionPoint("/rest/products/search", "q"));
 
+    /** Pontos de XSS refletido: DVWA (reflete cru) e Juice Shop /redirect (reflete escapado). */
+    private static final List<InjectionPoint> XSS_POINTS = List.of(
+            new InjectionPoint("/vulnerabilities/xss_r/", "name"),
+            new InjectionPoint("/redirect", "to"));
+
     private static final String SQLI_PAYLOADS = "/payloads/sqli.txt";
+    private static final String XSS_PAYLOADS = "/payloads/xss.txt";
 
     private final HttpClient httpClient;
     private final Detector detector = new HeuristicDetector();
@@ -51,7 +59,14 @@ public final class Container {
         Map<String, VulnModule> modules = new LinkedHashMap<>();
         modules.put("sqli", new SqlInjectionModule(httpClient, detector,
                 payloads(SQLI_PAYLOADS, VulnType.SQL_INJECTION), SQLI_POINTS));
+        modules.put("xss", new XssModule(httpClient, detector,
+                payloads(XSS_PAYLOADS, VulnType.XSS_REFLECTED), XSS_POINTS, Container::newMarker));
         return modules;
+    }
+
+    /** Marcador único de XSS: "vsx" + 8 hex de um UUID aleatório (só letras e dígitos). */
+    private static String newMarker() {
+        return "vsx" + UUID.randomUUID().toString().substring(0, 8);
     }
 
     private List<ReportWriter> writers() {

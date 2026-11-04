@@ -74,4 +74,17 @@ class PayloadFileTest {
         Payload last = payloads.get(payloads.size() - 1);
         assertTrue(last.id().startsWith("sqli-time-"), "o temporal vem por último: " + last);
     }
+
+    @Test
+    void arquivoXssDoClasspathTemMarcadorEmTodos() throws IOException {
+        List<Payload> payloads;
+        try (InputStream in = PayloadFileTest.class.getResourceAsStream("/payloads/xss.txt")) {
+            assertNotNull(in, "recurso /payloads/xss.txt ausente");
+            payloads = PayloadFile.parse(new String(in.readAllBytes(), StandardCharsets.UTF_8),
+                    VulnType.XSS_REFLECTED);
+        }
+
+        assertTrue(payloads.size() >= 4, "payloads: " + payloads);
+        assertTrue(payloads.stream().allMatch(p -> p.value().contains("{marker}")), "payloads: " + payloads);
+    }
 }

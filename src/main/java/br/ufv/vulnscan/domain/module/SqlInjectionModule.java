@@ -12,9 +12,6 @@ import br.ufv.vulnscan.domain.model.Verdict;
 import br.ufv.vulnscan.domain.model.VulnType;
 import br.ufv.vulnscan.port.HttpClient;
 
-import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -81,16 +78,9 @@ public final class SqlInjectionModule implements VulnModule {
     }
 
     private Evidence attack(Target target, InjectionPoint point, Payload payload) {
-        HttpRequest request = new HttpRequest("GET", url(target, point, payload), target.headers(), null);
+        HttpRequest request = new HttpRequest("GET", point.url(target.baseUrl(), payload.value()),
+                target.headers(), null);
         HttpResponse response = http.send(request);
         return new Evidence(payload, request, response);
-    }
-
-    /** URL base + path do ponto + {@code parametro=<payload URL-encoded>}, com ? ou &. */
-    private static URI url(Target target, InjectionPoint point, Payload payload) {
-        String base = target.baseUrl().resolve(point.path()).toString();
-        String separator = base.contains("?") ? "&" : "?";
-        return URI.create(base + separator + point.parameter() + "="
-                + URLEncoder.encode(payload.value(), StandardCharsets.UTF_8));
     }
 }

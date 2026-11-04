@@ -41,7 +41,7 @@ seguir.
 
 ## Fase 3 — XSS (refletido e armazenado)
 
-- [ ] `XssModule` com marcador único; refletido via `HttpClient`.
+- [x] `XssModule` com marcador único; refletido via `HttpClient` (DVWA; o XSS de DOM do Juice Shop vai com o Selenium, #12).
 - [ ] XSS armazenado via Selenium, isolado atrás de uma pequena interface própria do
       módulo (para o domínio não depender de Selenium diretamente).
 - [ ] Regras de XSS no `HeuristicDetector`.
