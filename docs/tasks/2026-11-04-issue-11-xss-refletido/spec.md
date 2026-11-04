@@ -76,9 +76,9 @@ valor contém o marcador `{marker}`. Na ordem:
 ## Fora do escopo
 
 - Regras de detecção de XSS (#13) e XSS armazenado/Selenium (#12).
-- **XSS de DOM do Juice Shop (`/#/search?q=`)**: exige navegador. Proposta: tratar na #12
-  (que já traz o Selenium atrás de uma interface do módulo) ou numa issue nova; e ajustar
-  a nota do caso `js-xss-search` no `ground_truth.yaml` quando o benchmark for montado.
+- **XSS de DOM do Juice Shop (`/#/search?q=`)**: exige navegador. **Decidido: vai para a
+  #12** (que já traz o Selenium atrás de uma interface do módulo). A nota do caso
+  `js-xss-search` no `ground_truth.yaml` é ajustada quando o benchmark for montado.
 - POST/formulários, crawler, `user_token` do DVWA `impossible`.
 
 ## Contratos tocados (`docs/contracts.md` no mesmo passo)
