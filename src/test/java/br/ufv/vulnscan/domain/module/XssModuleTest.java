@@ -2,15 +2,19 @@ package br.ufv.vulnscan.domain.module;
 
 import br.ufv.vulnscan.domain.detection.Detector;
 import br.ufv.vulnscan.domain.model.Evidence;
+import br.ufv.vulnscan.domain.model.Finding;
 import br.ufv.vulnscan.domain.model.HttpRequest;
 import br.ufv.vulnscan.domain.model.HttpResponse;
 import br.ufv.vulnscan.domain.model.Payload;
+import br.ufv.vulnscan.domain.model.Severity;
 import br.ufv.vulnscan.domain.model.Target;
 import br.ufv.vulnscan.domain.model.Verdict;
 import br.ufv.vulnscan.domain.model.VulnType;
 import br.ufv.vulnscan.port.HttpClient;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +24,9 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Testes do módulo de XSS refletido com HttpClient, Detector e marcadores fakes, sem rede. */
 class XssModuleTest {
@@ -78,6 +85,99 @@ class XssModuleTest {
         Payload concrete = new Payload("xss-script", VulnType.XSS_REFLECTED,
                 "<script>alert('m1')</script>", "teste");
         assertEquals(List.of(new Evidence(concrete, onlyRequest(), resposta)), detector.judged);
+    }
+
+    @Test
+    void semPositivoNaoReportaETentaTudo() {
+        List<Finding> findings = module(List.of(SCRIPT, SVG), List.of(DVWA, REDIRECT)).scan(TARGET);
+
+        assertTrue(findings.isEmpty(), "findings: " + findings);
+        assertEquals(4, http.requests.size(), "2 pontos x 2 payloads");
+    }
+
+    @Test
+    void positivoViraFindingMediumEParaNoPonto() {
+        detector.vulnerable = evidence -> evidence.payload().id().equals("xss-script");
+
+        List<Finding> findings = module(List.of(SCRIPT, SVG), List.of(DVWA)).scan(TARGET);
+
+        assertEquals(1, http.requests.size(), "não envia os payloads restantes do ponto");
+        assertEquals(1, findings.size());
+        Finding finding = findings.get(0);
+        assertEquals(VulnType.XSS_REFLECTED, finding.type());
+        assertEquals(Severity.MEDIUM, finding.severity());
+        assertSame(TARGET, finding.target());
+        assertSame(detector.judged.get(0), finding.evidence());
+        assertEquals(new Verdict(true, 0.9, "positivo fake", "fake"), finding.verdict());
+    }
+
+    @Test
+    void positivoEmUmPontoNaoImpedeOutro() {
+        detector.vulnerable = evidence -> evidence.payload().id().equals("xss-svg-onload");
+
+        List<Finding> findings = module(List.of(SCRIPT, SVG), List.of(DVWA, REDIRECT)).scan(TARGET);
+
+        assertEquals(4, http.requests.size());
+        assertEquals(List.of("/vulnerabilities/xss_r/", "/redirect"),
+                findings.stream().map(f -> f.evidence().request().url().getPath()).toList());
+    }
+
+    @Test
+    void erroDoHttpClientPropaga() {
+        UncheckedIOException error = new UncheckedIOException(new IOException("alvo fora do ar"));
+        http.error = error;
+
+        UncheckedIOException thrown = assertThrows(UncheckedIOException.class,
+                () -> module(List.of(SCRIPT), List.of(DVWA)).scan(TARGET));
+        assertSame(error, thrown);
+    }
+
+    @Test
+    void construtorRejeitaNulos() {
+        List<Payload> payloads = List.of(SCRIPT);
+        List<InjectionPoint> points = List.of(DVWA);
+        assertThrows(NullPointerException.class, () -> new XssModule(null, detector, payloads, points, markers));
+        assertThrows(NullPointerException.class, () -> new XssModule(http, null, payloads, points, markers));
+        assertThrows(NullPointerException.class, () -> new XssModule(http, detector, null, points, markers));
+        assertThrows(NullPointerException.class, () -> new XssModule(http, detector, payloads, null, markers));
+        assertThrows(NullPointerException.class, () -> new XssModule(http, detector, payloads, points, null));
+    }
+
+    @Test
+    void construtorRejeitaListasVazias() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new XssModule(http, detector, List.of(), List.of(DVWA), markers));
+        assertThrows(IllegalArgumentException.class,
+                () -> new XssModule(http, detector, List.of(SCRIPT), List.of(), markers));
+    }
+
+    @Test
+    void construtorRejeitaPayloadDeOutroTipo() {
+        Payload sqli = new Payload("sqli-quote-single", VulnType.SQL_INJECTION, "1'{marker}", "sqli");
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> new XssModule(http, detector, List.of(SCRIPT, sqli), List.of(DVWA), markers));
+        assertTrue(e.getMessage().contains("sqli-quote-single"), e.getMessage());
+    }
+
+    @Test
+    void construtorRejeitaPayloadSemMarcador() {
+        Payload semMarcador = payload("xss-fixo", "<script>alert(1)</script>");
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> new XssModule(http, detector, List.of(semMarcador), List.of(DVWA), markers));
+        assertTrue(e.getMessage().contains("xss-fixo"), e.getMessage());
+    }
+
+    @Test
+    void listasSaoCopiadas() {
+        List<Payload> payloads = new ArrayList<>(List.of(SCRIPT));
+        XssModule module = new XssModule(http, detector, payloads, List.of(DVWA), markers);
+        payloads.add(SVG);
+
+        module.scan(TARGET);
+
+        assertEquals(1, http.requests.size());
     }
 
     private HttpRequest onlyRequest() {

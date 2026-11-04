@@ -89,6 +89,16 @@ public final class SqlInjectionModule implements VulnModule {
                               java.util.List<Payload> payloads,
                               java.util.List<InjectionPoint> points) { ... }
 }
+
+// XSS refletido: igual ao SQLi, mas cada payload traz {marker}, trocado por markers.get() a
+// cada requisição; o payload concreto vai na Evidence. Positivo → Finding MEDIUM e encerra o
+// ponto. Payload de outro tipo ou sem {marker} → IllegalArgumentException.
+public final class XssModule implements VulnModule {
+    public XssModule(HttpClient http, Detector detector,
+                     java.util.List<Payload> payloads,
+                     java.util.List<InjectionPoint> points,
+                     java.util.function.Supplier<String> markers) { ... }
+}
 ```
 
 ## Portas (`port/`) — a fronteira com o mundo externo

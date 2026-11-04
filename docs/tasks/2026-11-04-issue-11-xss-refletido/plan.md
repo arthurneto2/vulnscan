@@ -21,10 +21,10 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   `#enviaHeadersDoAlvo`, `#cadaRequisicaoUsaMarcadorNovo`,
   `#evidenciaTrazPayloadConcreto`.
 
-- [ ] **4. Vereditos.** `#semPositivoNaoReportaETentaTudo`,
+- [x] **4. Vereditos.** `#semPositivoNaoReportaETentaTudo`,
   `#positivoViraFindingMediumEParaNoPonto`, `#positivoEmUmPontoNaoImpedeOutro`.
 
-- [ ] **5. Erros e validações.** `#erroDoHttpClientPropaga`, `#construtorRejeitaNulos`,
+- [x] **5. Erros e validações.** `#erroDoHttpClientPropaga`, `#construtorRejeitaNulos`,
   `#construtorRejeitaListasVazias`, `#construtorRejeitaPayloadDeOutroTipo`,
   `#construtorRejeitaPayloadSemMarcador`, `#listasSaoCopiadas`. Javadoc. Atualizar
   `docs/contracts.md`. Verificar: `mvn test -Dtest=XssModuleTest`.
