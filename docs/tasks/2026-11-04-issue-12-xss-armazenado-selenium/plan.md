@@ -37,6 +37,22 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   - *Desvio:* `#semModulosRodaSqliEXss` virou `#sqliEXssRodamJuntos` (módulos explícitos),
     porque "todos" agora abre o navegador e o `ContainerTest` não deve depender de Chrome.
 
-- [ ] **7. Checkpoint.** `mvn clean verify` verde. Lab: `xss-dom` no Juice Shop (1),
+- [x] **7. Checkpoint.** `mvn clean verify` verde. Lab: `xss-dom` no Juice Shop (1),
   `xss-stored` no DVWA `low` (1) e `medium` (0). Marcar a Fase 3 no `build-order`.
   Marcar passos aqui, commits, push.
+  - Feito: `mvn clean verify` com 179 testes verdes — no ambiente padrão os 3 do
+    `SeleniumBrowserTest` são pulados (o `chromedriver` 147 do PATH não serve para o
+    Chrome 153); sem ele no PATH, rodam e passam (0 pulados).
+  - Lab (2026-11-04), com o driver certo: `xss-dom` no Juice Shop → 1 achado (`xss-script`,
+    regra "cru em HTML" sobre o DOM renderizado); `xss-stored` no DVWA `low` → 1 achado
+    ("o navegador executou o payload: diálogo com o marcador"); `medium` → 0; `xss-dom` no
+    DVWA (sem a rota) → 0.
+  - Observação para o experimento: no Juice Shop o primeiro positivo veio do `<script>`
+    inserido via `innerHTML` (está no DOM, mas não executa); o `<img onerror>` executaria.
+    O alvo é vulnerável, mas a evidência desse payload é mais fraca que a de um diálogo.
+
+## Desvios do plano
+
+- `MarkedPayloads` e `RenderedPage.toResponse()` (refactor do passo 3).
+- `ContainerTest#sqliEXssRodamJuntos` e `MainTest#scanGravaRelatorioESai0` passam a pedir
+  módulos explícitos: "todos" agora abre o navegador.

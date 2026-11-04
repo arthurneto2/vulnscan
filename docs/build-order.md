@@ -42,10 +42,13 @@ seguir.
 ## Fase 3 — XSS (refletido e armazenado)
 
 - [x] `XssModule` com marcador único; refletido via `HttpClient` (DVWA; o XSS de DOM do Juice Shop vai com o Selenium, #12).
-- [ ] XSS armazenado via Selenium, isolado atrás de uma pequena interface própria do
-      módulo (para o domínio não depender de Selenium diretamente).
+- [x] XSS armazenado via Selenium, isolado atrás de uma pequena interface própria do
+      módulo (para o domínio não depender de Selenium diretamente). `XssBrowser` +
+      `SeleniumBrowser`; também o XSS de DOM do Juice Shop (`xss-dom`).
 - [x] Regras de XSS no `HeuristicDetector`.
-- **Checkpoint:** XSS refletido e armazenado detectados no Juice Shop.
+- **Checkpoint:** XSS refletido e armazenado detectados no Juice Shop. ✅ em parte
+  (2026-11-04): refletido no DVWA (`xss`) e de DOM no Juice Shop (`xss-dom`); armazenado no
+  DVWA (`xss-stored`, guestbook). Armazenado no Juice Shop exige login/captcha/JWT → issue nova.
 
 ## Fase 4 — API REST (autenticação/autorização)
 
