@@ -12,8 +12,11 @@ esse formato; ele só fala HTTP com o Ollama.
 ## Modelo
 
 - Runtime: Ollama local, endpoint `POST http://localhost:11434/api/generate`.
-- Modelo fixado: `mistral:7b-instruct` (ou `qwen2.5:7b-instruct`). A versão exata fica em
-  `app/Config.java` e no README. Fixar a versão é o que torna o experimento reproduzível.
+- Modelo fixado: `mistral:7b-instruct` (Apache-2.0). A tag exata é
+  `mistral:7b-instruct-v0.3-q4_0`, fixada em `app/Config.java` (`Config.defaults()`) e no
+  README. Fixar a versão é o que torna o experimento reproduzível.
+- Digest de reprodutibilidade (preencher após `ollama pull`, de `ollama list --digests`):
+  `sha256:<preencher após ollama pull>`.
 - Parâmetros: `temperature` baixo (ex.: 0.1) para reduzir variação; `format: "json"` para
   forçar saída JSON; `stream: false`.
 
