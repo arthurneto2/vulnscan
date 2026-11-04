@@ -243,6 +243,16 @@ class HeuristicDetectorTest {
         assertTrue(verdict.rationale().contains("corpo vazio"), verdict.rationale());
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {404, 500})
+    void statusInconclusivoNaoEVulneravel(int status) {
+        Verdict verdict = detector.judge(auth(VulnType.BROKEN_ACCESS_CONTROL, status, "erro", Map.of()));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.6, verdict.confidence());
+        assertTrue(verdict.rationale().contains("inconclusivo"), verdict.rationale());
+    }
+
     @Test
     void redirecionadoParaLoginNaoEVulneravel() {
         Verdict verdict = detector.judge(auth(VulnType.BROKEN_AUTH, 302, "",

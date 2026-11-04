@@ -23,8 +23,9 @@ Verificação: `mvn test -Dtest=HeuristicDetectorTest`.
 - [x] **3. Redirecionado para login.** `#redirecionadoParaLoginNaoEVulneravel` (302 +
   `location`), `#redirectSemLoginEInconclusivo` (302 sem login). Green: regra 2.
 
-- [ ] **4. Inconclusivo.** `#statusInconclusivoNaoEVulneravel` (parametrizado 404, 500).
-  (Provável que já passe da regra 4; confirmar e anotar desvio se for o caso.)
+- [x] **4. Inconclusivo.** `#statusInconclusivoNaoEVulneravel` (parametrizado 404, 500).
+  - *Desvio:* passou de primeira (já cobertos pela regra 4 do passo 1). Mordida confirmada
+    trocando o ramo inconclusivo para `vulnerable=true`: o teste falha.
 
 - [ ] **5. Refactor e Javadoc.** Constantes nomeadas; Javadoc com as regras de auth/acesso.
 
