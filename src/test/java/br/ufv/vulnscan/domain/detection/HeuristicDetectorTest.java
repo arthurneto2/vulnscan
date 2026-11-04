@@ -22,6 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Testes do detector heurístico com Evidence montada à mão, sem rede. */
 class HeuristicDetectorTest {
 
+    private static final String SVG = "<svg onload=alert('vsx1a2b3c4d')>";
+
     private final HeuristicDetector detector = new HeuristicDetector();
 
     @Test
@@ -110,7 +112,7 @@ class HeuristicDetectorTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = VulnType.class, mode = EnumSource.Mode.EXCLUDE, names = "SQL_INJECTION")
+    @EnumSource(value = VulnType.class, names = {"BROKEN_AUTH", "BROKEN_ACCESS_CONTROL"})
     void tipoSemRegrasNaoEVulneravel(VulnType type) {
         Verdict verdict = detector.judge(evidence(type, "outro", "You have an error in your SQL syntax", 40));
 
@@ -118,6 +120,78 @@ class HeuristicDetectorTest {
         assertEquals(0.0, verdict.confidence());
         assertTrue(verdict.rationale().contains(type.name()), verdict.rationale());
         assertEquals("heuristic", verdict.detector());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = VulnType.class, names = {"XSS_REFLECTED", "XSS_STORED"})
+    void xssCruEmHtmlEVulneravel(VulnType type) {
+        Verdict verdict = detector.judge(xss(type, SVG, "<pre>Hello " + SVG + "</pre>", "text/html;charset=utf-8"));
+
+        assertTrue(verdict.vulnerable(), verdict.rationale());
+        assertEquals(0.9, verdict.confidence());
+        assertTrue(verdict.rationale().contains("sem escape"), verdict.rationale());
+        assertEquals("heuristic", verdict.detector());
+    }
+
+    @Test
+    void xssCruSemContentTypeEVulneravel() {
+        Verdict verdict = detector.judge(xss(VulnType.XSS_REFLECTED, SVG, "Hello " + SVG, null));
+
+        assertTrue(verdict.vulnerable(), verdict.rationale());
+    }
+
+    @Test
+    void xssScriptRemovidoNaoEVulneravel() {
+        String script = "<script>alert('vsx1a2b3c4d')</script>";
+        Verdict verdict = detector.judge(xss(VulnType.XSS_REFLECTED, script,
+                "<pre>Hello alert('vsx1a2b3c4d')</script></pre>", "text/html;charset=utf-8"));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.6, verdict.confidence());
+        assertTrue(verdict.rationale().contains("não refletido"), verdict.rationale());
+    }
+
+    @Test
+    void xssCorpoNuloNaoLanca() {
+        assertFalse(detector.judge(xss(VulnType.XSS_REFLECTED, SVG, null, "text/html")).vulnerable());
+    }
+
+    @Test
+    void xssEmMaiusculasNaoContaComoCru() {
+        Verdict verdict = detector.judge(xss(VulnType.XSS_REFLECTED, SVG,
+                "Hello <SVG ONLOAD=ALERT('VSX1A2B3C4D')>", "text/html"));
+
+        assertFalse(verdict.vulnerable());
+    }
+
+    @Test
+    void xssCruEmJsonNaoEVulneravel() {
+        Verdict verdict = detector.judge(xss(VulnType.XSS_REFLECTED, SVG,
+                "{\"orderId\":\"" + SVG + "\"}", "application/json; charset=utf-8"));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.5, verdict.confidence());
+        assertTrue(verdict.rationale().contains("application/json"), verdict.rationale());
+    }
+
+    @Test
+    void xssEscapadoNaoEVulneravel() {
+        String juiceShop = "<title>Error: Unrecognized target URL for redirect: "
+                + "&lt;svg onload=alert(&#39;vsx1a2b3c4d&#39;)&gt;</title>";
+
+        Verdict verdict = detector.judge(xss(VulnType.XSS_REFLECTED, SVG, juiceShop, "text/html; charset=utf-8"));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.8, verdict.confidence());
+        assertTrue(verdict.rationale().contains("escape"), verdict.rationale());
+    }
+
+    private static Evidence xss(VulnType type, String value, String body, String contentType) {
+        Payload payload = new Payload("xss-svg-onload", type, value, "payload de teste");
+        HttpRequest request = new HttpRequest("GET",
+                URI.create("http://localhost:8080/vulnerabilities/xss_r/?name=x"), Map.of(), null);
+        Map<String, String> headers = contentType == null ? Map.of() : Map.of("content-type", contentType);
+        return new Evidence(payload, request, new HttpResponse(200, headers, body, 5));
     }
 
     private static Evidence sqli(String body, long elapsedMillis) {
