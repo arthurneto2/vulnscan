@@ -32,8 +32,10 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   `assumeTrue` se o Chrome não subir): `#devolveDomDepoisDoJavascript`,
   `#capturaTextoDoAlert`, `#enviaCookieDoHeader`.
 
-- [ ] **6. `Container`.** `ContainerTest#modulosDisponiveisIncluemXssDomEXssStored`.
+- [x] **6. `Container`.** `ContainerTest#modulosDisponiveisIncluemXssDomEXssStored`.
   Atualizar `docs/cli.md`.
+  - *Desvio:* `#semModulosRodaSqliEXss` virou `#sqliEXssRodamJuntos` (módulos explícitos),
+    porque "todos" agora abre o navegador e o `ContainerTest` não deve depender de Chrome.
 
 - [ ] **7. Checkpoint.** `mvn clean verify` verde. Lab: `xss-dom` no Juice Shop (1),
   `xss-stored` no DVWA `low` (1) e `medium` (0). Marcar a Fase 3 no `build-order`.

@@ -12,7 +12,7 @@ vulnscan scan --target <url> [--module <nome>]... [--header "<nome>: <valor>"]..
 | Opção        | Default        | Descrição                                            |
 | ------------ | -------------- | ---------------------------------------------------- |
 | `--target`   | (obrigatório)  | URL base do alvo, ex.: `http://localhost:3000`       |
-| `--module`   | todos          | `sqli`, `xss`, `api` — repetível                     |
+| `--module`   | todos          | `sqli`, `xss`, `xss-dom`, `xss-stored` (e `api`, na Fase 4) — repetível. `xss-dom` e `xss-stored` abrem o Chrome headless (Selenium); "todos" também |
 | `--header`   | nenhum         | header enviado em toda requisição ao alvo; repetível. Nome repetido junta valores por `, `. Sem `:` ou nome vazio → saída 1 |
 | `--detector` | `heuristic`    | qual estratégia usar no veredito                     |
 | `--format`   | `md`           | formato do relatório de saída                        |
