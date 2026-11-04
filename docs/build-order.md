@@ -32,11 +32,12 @@ seguir.
 ## Fase 2 — Detecção heurística + primeiro módulo real (SQLi)
 
 - [x] `domain/detection/HeuristicDetector`: regras/regex por `VulnType`.
-- [ ] `domain/module/SqlInjectionModule`: payloads de aspas, booleano e temporal; captura a
+- [x] `domain/module/SqlInjectionModule`: payloads de aspas, booleano e temporal; captura a
       `Evidence` e chama o `Detector`.
-- [ ] `payloads/sqli.txt` (ou similar) com os payloads.
+- [x] `payloads/sqli.txt` (em `src/main/resources/payloads/`) com os payloads.
 - [x] Teste de unidade do `HeuristicDetector` com `Evidence` fixa (sem rede).
-- **Checkpoint:** SQLi detectado no DVWA, com evidência no relatório; teste verde.
+- **Checkpoint:** SQLi detectado no DVWA, com evidência no relatório; teste verde. ✅
+  (2026-11-04: DVWA `low` e Juice Shop → 1 achado cada; DVWA `impossible` → 0.)
 
 ## Fase 3 — XSS (refletido e armazenado)
 

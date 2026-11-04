@@ -44,6 +44,16 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   em `/vulnerabilities/sqli/`), `#semModulosRodaSqli`, `#moduloSmokeNaoExisteMais`.
   Ajustar `MainTest#scanGravaRelatorioESai0`. Apagar `SmokeModule` e `SmokeModuleTest`.
 
-- [ ] **10. Checkpoint.** `mvn clean verify` verde. Scan real no DVWA e no Juice Shop do lab. Marcar na Fase 2 do `build-order`
+- [x] **10. Checkpoint.** `mvn clean verify` verde. Scan real no DVWA e no Juice Shop do lab. Marcar na Fase 2 do `build-order`
   os itens do módulo, do arquivo de payloads e o checkpoint
   da fase. Marcar passos aqui, commits, push.
+  - Feito: `mvn clean verify` com 125 testes verdes (inclui `DependencyRuleTest`).
+  - Lab (Docker local, 2026-11-04), `java -jar target/vulnscan.jar scan --module sqli`:
+    DVWA `security=low` (com `--header "Cookie: ..."`) → 1 achado, `sqli-quote-single`,
+    erro de MySQL; DVWA `security=impossible` → 0 achados; Juice Shop → 1 achado, erro de
+    SQLite.
+
+## Desvios do plano
+
+- Passo 6 também cobre `#listasSaoCopiadas` (o construtor copia as listas).
+- `MainTest#headerInvalidoSai1SemRodar` é parametrizado (sem `:`, nome vazio, nome em branco).
