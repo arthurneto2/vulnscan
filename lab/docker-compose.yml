@@ -6,18 +6,25 @@
 # Para resetar ao estado de fábrica entre execuções do experimento:
 #   docker compose -f lab/docker-compose.yml down && docker compose -f lab/docker-compose.yml up -d
 #
+# Imagens FIXADAS POR DIGEST para reprodutibilidade (docs/experiment.md). Os dois repositórios
+# só publicam a tag móvel :latest; o digest abaixo é o pino. Capturados em 2026-11-04 (eram o
+# :latest na data). Para atualizar: `docker pull <repo>:latest`, pegue o RepoDigests com
+# `docker inspect --format '{{.RepoDigests}}' <repo>:latest` e repine aqui.
+#
 # ATENÇÃO: alvos deliberadamente inseguros. Rodar só em rede local/isolada, nunca expostos.
 
 services:
   dvwa:
-    image: vulnerables/web-dvwa:latest
+    # vulnerables/web-dvwa:latest em 2026-11-04
+    image: vulnerables/web-dvwa@sha256:dae203fe11646a86937bf04db0079adef295f426da68a92b40e3b181f337daa7
     container_name: vulnscan-dvwa
     ports:
       - "8080:80"
     restart: unless-stopped
 
   juice-shop:
-    image: bkimminich/juice-shop:latest
+    # bkimminich/juice-shop:latest em 2026-11-04
+    image: bkimminich/juice-shop@sha256:42843723a7bf4246aa5d63c324978b17ef296ac78434aeddd34c427bfb5853f4
     container_name: vulnscan-juice-shop
     ports:
       - "3000:3000"

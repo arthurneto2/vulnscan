@@ -31,7 +31,8 @@ conhecida.
 ## Reprodutibilidade
 
 - Modelo e versão fixados (`app/Config.java`), temperatura baixa.
-- Mesma versão das imagens Docker do laboratório.
+- Mesma versão das imagens Docker do laboratório — fixadas por digest (`@sha256:`) em
+  `lab/docker-compose.yml`, não por `:latest`.
 - Alvo resetado entre execuções (o XSS armazenado suja o banco).
 - Semente/ordem dos casos estável.
 - O relatório cita a variância entre as N execuções como limitação honesta.
