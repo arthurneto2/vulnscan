@@ -5,16 +5,16 @@ Cada passo: teste → mínimo → refactor.
 
 ## Passos
 
-- [ ] **1. format() + esqueleto.** `JsonReportWriterTest#formatEhJson`. Green: classe com
+- [x] **1. format() + esqueleto.** `JsonReportWriterTest#formatEhJson`. Green: classe com
   `format()` = "json" e `write` mínimo.
 
-- [ ] **2. Sem achados.** `#semAchadosGravaJsonValido` (parseia; `findingCount` 0, `findings`
+- [x] **2. Sem achados.** `#semAchadosGravaJsonValido` (parseia; `findingCount` 0, `findings`
   []; target e datas). Green: monta a árvore base com Jackson + JavaTimeModule (ISO-8601).
 
-- [ ] **3. Com achado.** `#comAchadoTrazTudo` (tipo, severidade, veredito+detector, payload,
+- [x] **3. Com achado.** `#comAchadoTrazTudo` (tipo, severidade, veredito+detector, payload,
   request/response; `durationMillis`). Green: serializa cada finding.
 
-- [ ] **4. Truncamento + I/O.** `#corpoGrandeTruncado`, `#criaDiretorioPaiEUtf8`,
+- [x] **4. Truncamento + I/O.** `#corpoGrandeTruncado`, `#criaDiretorioPaiEUtf8`,
   `#erroDeIoViraUnchecked`. Green: truncar corpos; `Files.createDirectories`; UTF-8.
 
 - [ ] **5. Container + checkpoint.** Registrar `json` no `Container`;
