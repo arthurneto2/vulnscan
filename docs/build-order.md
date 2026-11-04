@@ -63,12 +63,16 @@ seguir.
 
 ## Fase 5 — Camada de IA
 
-- [ ] `adapter/llm/OllamaClient` implementando `LlmClient` (ver `docs/llm-contract.md`).
-- [ ] `domain/detection/LlmDetector`: monta o prompt, chama o `LlmClient`, parse defensivo
+- [x] `adapter/llm/OllamaClient` implementando `LlmClient` (ver `docs/llm-contract.md`).
+- [x] `domain/detection/LlmDetector`: monta o prompt, chama o `LlmClient`, parse defensivo
       para `Verdict`.
-- [ ] `app/Config` com modelo e versão fixados; `--detector llm|both` na CLI.
-- [ ] Teste do `LlmDetector` com um `LlmClient` fake que devolve um JSON conhecido.
-- **Checkpoint:** o mesmo caso julgado por heurística e por LLM, com justificativa.
+- [x] `app/Config` com modelo e versão fixados; `--detector llm|both` na CLI.
+- [x] Teste do `LlmDetector` com um `LlmClient` fake que devolve um JSON conhecido.
+- **Checkpoint:** o mesmo caso julgado por heurística e por LLM, com justificativa. ✅ em
+  parte: a ligação roda cada caso com cada detector (teste `bothRodaOsDoisPorCaso`; `scan
+  --detector both` executa os dois). O veredito de LLM real e a comparação por caso (com
+  negativos) exigem Ollama no ar (`ollama serve` + `ollama pull`) e são medidos pelo
+  BenchmarkRunner (#21); sem Ollama o lado LLM responde "indisponível".
 
 ## Fase 6 — Experimento
 
