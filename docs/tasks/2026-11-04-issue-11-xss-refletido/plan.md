@@ -12,7 +12,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   e perde o `url` privado. Atualizar `docs/contracts.md`.
   Verificar: `mvn test -Dtest='InjectionPointTest,SqlInjectionModuleTest'`.
 
-- [ ] **2. `xss.txt`.** `PayloadFileTest#arquivoXssDoClasspathTemMarcadorEmTodos`. Green:
+- [x] **2. `xss.txt`.** `PayloadFileTest#arquivoXssDoClasspathTemMarcadorEmTodos`. Green:
   criar o arquivo.
 
 - [ ] **3. `XssModule`: requisições e marcador.** `XssModuleTest` (fakes de

