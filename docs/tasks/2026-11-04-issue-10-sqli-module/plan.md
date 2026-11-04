@@ -6,7 +6,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
 
 ## Passos
 
-- [ ] **1. Headers no `Target`.** Teste `TargetTest#construtorSemHeadersDaMapaVazio`,
+- [x] **1. Headers no `Target`.** Teste `TargetTest#construtorSemHeadersDaMapaVazio`,
   `#headersSaoCopiadosEImutaveis`, `#headersNulosViramVazio`. Green: componente
   `headers`, construtor compacto e secundário. Atualizar `docs/contracts.md`.
   Verificar: `mvn test -Dtest=TargetTest`.

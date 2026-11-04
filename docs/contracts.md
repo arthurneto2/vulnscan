@@ -13,8 +13,11 @@ enum VulnType { SQL_INJECTION, XSS_REFLECTED, XSS_STORED, BROKEN_AUTH, BROKEN_AC
 
 enum Severity { INFO, LOW, MEDIUM, HIGH, CRITICAL }
 
-// Alvo sob teste (um app do laboratório).
-record Target(String name, java.net.URI baseUrl) {}
+// Alvo sob teste (um app do laboratório). headers vão em toda requisição ao alvo
+// (ex.: cookie de sessão do DVWA, vindo de --header); nulo → vazio; cópia imutável.
+record Target(String name, java.net.URI baseUrl, java.util.Map<String, String> headers) {
+    Target(String name, java.net.URI baseUrl) { ... }   // headers vazios
+}
 
 // Um payload de ataque, carregado de arquivo ou gerado por um módulo.
 record Payload(String id, VulnType type, String value, String description) {}
