@@ -14,6 +14,8 @@ import br.ufv.vulnscan.domain.model.VulnType;
 import br.ufv.vulnscan.port.HttpClient;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +25,7 @@ import java.util.function.Predicate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Testes do módulo de SQLi com HttpClient e Detector fakes, sem rede. */
@@ -131,6 +134,54 @@ class SqlInjectionModuleTest {
         assertEquals(1, findings.size());
         assertTrue(findings.get(0).verdict().vulnerable());
         assertEquals("heuristic", findings.get(0).verdict().detector());
+    }
+
+    @Test
+    void erroDoHttpClientPropaga() {
+        UncheckedIOException error = new UncheckedIOException(new IOException("alvo fora do ar"));
+        http.error = error;
+
+        UncheckedIOException thrown = assertThrows(UncheckedIOException.class,
+                () -> module(List.of(QUOTE), List.of(DVWA)).scan(TARGET));
+        assertSame(error, thrown);
+    }
+
+    @Test
+    void construtorRejeitaNulos() {
+        List<Payload> payloads = List.of(QUOTE);
+        List<InjectionPoint> points = List.of(DVWA);
+        assertThrows(NullPointerException.class, () -> new SqlInjectionModule(null, detector, payloads, points));
+        assertThrows(NullPointerException.class, () -> new SqlInjectionModule(http, null, payloads, points));
+        assertThrows(NullPointerException.class, () -> new SqlInjectionModule(http, detector, null, points));
+        assertThrows(NullPointerException.class, () -> new SqlInjectionModule(http, detector, payloads, null));
+    }
+
+    @Test
+    void construtorRejeitaListasVazias() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new SqlInjectionModule(http, detector, List.of(), List.of(DVWA)));
+        assertThrows(IllegalArgumentException.class,
+                () -> new SqlInjectionModule(http, detector, List.of(QUOTE), List.of()));
+    }
+
+    @Test
+    void construtorRejeitaPayloadDeOutroTipo() {
+        Payload xss = new Payload("xss-script", VulnType.XSS_REFLECTED, "<script>", "xss");
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> new SqlInjectionModule(http, detector, List.of(QUOTE, xss), List.of(DVWA)));
+        assertTrue(e.getMessage().contains("xss-script"), e.getMessage());
+    }
+
+    @Test
+    void listasSaoCopiadas() {
+        List<Payload> payloads = new ArrayList<>(List.of(QUOTE));
+        SqlInjectionModule module = new SqlInjectionModule(http, detector, payloads, List.of(DVWA));
+        payloads.add(BOOL);
+
+        module.scan(TARGET);
+
+        assertEquals(1, http.requests.size());
     }
 
     private HttpRequest onlyRequest() {

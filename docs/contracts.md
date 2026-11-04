@@ -66,6 +66,28 @@ public interface VulnModule {
 }
 ```
 
+## Módulos concretos (`domain/module/`)
+
+```java
+// Ponto de injeção: GET em path (relativo à URL base; pode ter query fixa) com o payload
+// no parâmetro de query `parameter`.
+record InjectionPoint(String path, String parameter) {}
+
+// Parser puro do arquivo de payloads (id<TAB>valor<TAB>descrição; # e vazias ignoradas).
+// Linha malformada ou id repetido → IllegalArgumentException citando a linha.
+public final class PayloadFile {
+    public static java.util.List<Payload> parse(String content, VulnType type) { ... }
+}
+
+// SQLi: um GET por (ponto × payload), na ordem; positivo → Finding HIGH e encerra o ponto.
+// Nulos → NPE; listas vazias ou payload de outro tipo → IllegalArgumentException.
+public final class SqlInjectionModule implements VulnModule {
+    public SqlInjectionModule(HttpClient http, Detector detector,
+                              java.util.List<Payload> payloads,
+                              java.util.List<InjectionPoint> points) { ... }
+}
+```
+
 ## Portas (`port/`) — a fronteira com o mundo externo
 
 ```java

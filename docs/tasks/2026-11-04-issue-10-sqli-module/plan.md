@@ -27,7 +27,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   `#semPositivoNaoReportaETentaTudo`, `#positivoViraFindingHighEParaNoPonto`,
   `#positivoEmUmPontoNaoImpedeOutro`, `#comHeuristicDetectorRealDetectaErroMysql`.
 
-- [ ] **6. Erros e validações.** `#erroDoHttpClientPropaga`, `#construtorRejeitaNulos`,
+- [x] **6. Erros e validações.** `#erroDoHttpClientPropaga`, `#construtorRejeitaNulos`,
   `#construtorRejeitaListasVazias`, `#construtorRejeitaPayloadDeOutroTipo`. Javadoc.
   Atualizar `docs/contracts.md` (InjectionPoint, construtor, PayloadFile).
   Verificar: `mvn test -Dtest=SqlInjectionModuleTest`.
