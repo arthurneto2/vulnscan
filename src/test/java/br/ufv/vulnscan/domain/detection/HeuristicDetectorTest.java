@@ -174,6 +174,18 @@ class HeuristicDetectorTest {
         assertTrue(verdict.rationale().contains("application/json"), verdict.rationale());
     }
 
+    @Test
+    void xssEscapadoNaoEVulneravel() {
+        String juiceShop = "<title>Error: Unrecognized target URL for redirect: "
+                + "&lt;svg onload=alert(&#39;vsx1a2b3c4d&#39;)&gt;</title>";
+
+        Verdict verdict = detector.judge(xss(VulnType.XSS_REFLECTED, SVG, juiceShop, "text/html; charset=utf-8"));
+
+        assertFalse(verdict.vulnerable());
+        assertEquals(0.8, verdict.confidence());
+        assertTrue(verdict.rationale().contains("escape"), verdict.rationale());
+    }
+
     private static Evidence xss(VulnType type, String value, String body, String contentType) {
         Payload payload = new Payload("xss-svg-onload", type, value, "payload de teste");
         HttpRequest request = new HttpRequest("GET",

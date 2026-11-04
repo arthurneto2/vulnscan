@@ -23,7 +23,7 @@ Verificação: `mvn test -Dtest=HeuristicDetectorTest`.
 
 - [x] **3. Fora de HTML.** `#xssCruEmJsonNaoEVulneravel` (0.5, cita o tipo).
 
-- [ ] **4. Escapado.** `#xssEscapadoNaoEVulneravel` (corpo do Juice Shop `/redirect`, 0.8).
+- [x] **4. Escapado.** `#xssEscapadoNaoEVulneravel` (corpo do Juice Shop `/redirect`, 0.8).
 
 - [ ] **5. Refactor e Javadoc.** Constantes nomeadas; Javadoc com as regras de XSS.
 

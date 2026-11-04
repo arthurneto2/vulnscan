@@ -88,7 +88,16 @@ public final class HeuristicDetector implements Detector {
             return new Verdict(false, 0.5,
                     "payload refletido, mas a resposta é " + contentType + ", não HTML", NAME);
         }
+        if (unescapeHtml(body).contains(evidence.payload().value())) {
+            return new Verdict(false, 0.8, "payload refletido, mas com escape de HTML", NAME);
+        }
         return new Verdict(false, 0.6, "payload não refletido na resposta", NAME);
+    }
+
+    private static String unescapeHtml(String text) {
+        return text.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"")
+                .replace("&#39;", "'").replace("&#039;", "'").replace("&#x27;", "'")
+                .replace("&amp;", "&");
     }
 
     /** Casa qualquer um dos textos literais, sem diferenciar maiúsculas. */
