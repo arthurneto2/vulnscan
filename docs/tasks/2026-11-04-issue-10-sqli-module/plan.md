@@ -11,7 +11,7 @@ Cada passo: teste primeiro (red por asserção), mínimo para passar (green), re
   `headers`, construtor compacto e secundário. Atualizar `docs/contracts.md`.
   Verificar: `mvn test -Dtest=TargetTest`.
 
-- [ ] **2. `PayloadFile.parse`.** `PayloadFileTest`: `#leLinhasValidas`,
+- [x] **2. `PayloadFile.parse`.** `PayloadFileTest`: `#leLinhasValidas`,
   `#ignoraVaziasEComentarios`, `#linhaMalformadaCitaNumeroDaLinha`,
   `#idRepetidoFalha`, `#campoVazioFalha`. Verificar: `mvn test -Dtest=PayloadFileTest`.
 
