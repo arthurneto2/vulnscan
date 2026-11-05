@@ -83,7 +83,7 @@ Uma medição anterior com `qwen2.5:7b-instruct` deu F1 0.750 (6 FP, 6 FN).
   (a IA ajudar a reduzir falso positivo).
 - Custo: o 14B é ~6× mais lento (parte das camadas fica na CPU com 6 GB de VRAM) e mais
   conservador. Os FN são `js-xss-dom-search` (3/3) e `js-idor-basket` (2/3). Por isso o
-  Ollama ganhou timeout próprio de 120 s (`Config.ollamaTimeout()`); com os 30 s do alvo,
+  Ollama ganhou timeout próprio de 120 s (`Config.llmTimeout()`, antes `ollamaTimeout`); com os 30 s do alvo,
   parte dos vereditos viraria "LLM indisponível".
 
 **Regra a partir daqui:** testes e experimentos com modelo local usam **no mínimo 14B

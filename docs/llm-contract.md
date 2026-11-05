@@ -90,7 +90,7 @@ medido continua sendo o julgamento do modelo, não uma cópia da heurística.
   Extraia o primeiro bloco `{...}` e parseie; se falhar, devolva
   `new Verdict(false, 0.0, "resposta do LLM não parseável", "llm")` e registre o ocorrido.
   Nunca deixe uma exceção de parsing derrubar o scan.
-- **Timeout.** O `OllamaClient` usa um `HttpClient` próprio com `Config.ollamaTimeout()`
+- **Timeout.** O `OllamaClient` usa um `HttpClient` próprio com `Config.llmTimeout()`
   (120 s; o alvo usa 30 s). O 14B levou mediana de 20 s e máximo de 78 s por veredito numa
   GPU de 6 GB. Se estourar, vira veredito de baixa confiança, não erro fatal.
 - **Não determinismo.** Mesmo com temperatura baixa, o LLM varia. O experimento roda N

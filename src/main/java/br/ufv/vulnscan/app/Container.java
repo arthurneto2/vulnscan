@@ -107,7 +107,7 @@ public final class Container {
         Map<String, Detector> detectors = new LinkedHashMap<>();
         detectors.put("heuristic", new HeuristicDetector());
         detectors.put("llm", new LlmDetector(
-                new OllamaClient(new JdkHttpClient(config.ollamaTimeout()), config.ollamaBaseUrl(),
+                new OllamaClient(new JdkHttpClient(config.llmTimeout()), config.ollamaBaseUrl(),
                         config.ollamaModel())));
         return detectors;
     }

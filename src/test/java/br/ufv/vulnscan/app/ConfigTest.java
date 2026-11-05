@@ -17,6 +17,6 @@ class ConfigTest {
         assertEquals(Duration.ofSeconds(30), config.httpTimeout());
         assertEquals(URI.create("http://localhost:11434"), config.ollamaBaseUrl());
         assertEquals("qwen2.5:14b-instruct", config.ollamaModel());
-        assertEquals(Duration.ofSeconds(120), config.ollamaTimeout());
+        assertEquals(Duration.ofSeconds(120), config.llmTimeout());
     }
 }

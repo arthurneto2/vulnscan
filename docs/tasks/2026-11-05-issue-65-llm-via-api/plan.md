@@ -35,8 +35,9 @@ modelo de 14B e o `ollamaTimeout` do PR #66).
   provisório (`nvidia/nemotron-3.5-lightning-30b-a3b`) até o passo 9.
   `mvn clean verify`: 319 testes, 0 falhas.
 
-- [ ] **4. `Config.ollamaTimeout` → `llmTimeout`.** Refactor com os testes verdes
-  (`ConfigTest`, `ContainerTest`); atualizar `docs/contracts.md`.
+- [x] **4. `Config.ollamaTimeout` → `llmTimeout`.** Refactor com os testes verdes
+  (`ConfigTest`, `ContainerTest`); `docs/contracts.md`, `llm-contract.md` e `experiment.md`
+  atualizados. `mvn clean verify`: 319 testes, 0 falhas.
 
 - [ ] **5. App: escolha do backend.**
   Red: `ContainerTest#llmApiUsaProvedorCompativelComOpenAi`. O `HttpServer` local responde
