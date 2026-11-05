@@ -26,11 +26,14 @@ modelo de 14B e o `ollamaTimeout` do PR #66).
   incluem headers, então a chave também não vaza por timeout.
   `mvn clean verify`: 314 testes, 0 falhas.
 
-- [ ] **3. `ApiLlmConfig`.**
-  Red: `ApiLlmConfigTest#soChaveUsaPadroes`, `variaveisSobrescrevemPadroes`,
-  `semChaveLancaCitandoVariavel`, `toStringMascaraChave`.
-  Green: record com `fromEnv(Map<String, String>)` e `toString` com `apiKey=***`. O modelo
-  padrão é provisório (`nvidia/nemotron-3.5-lightning-30b-a3b`) até o passo 9.
+- [x] **3. `ApiLlmConfig`.**
+  Red (5 falhas por asserção): `ApiLlmConfigTest#soChaveUsaPadroesDaNvidia`,
+  `variaveisSobrescrevemPadroes`, `variavelEmBrancoContaComoAusente`,
+  `semChaveLancaErroDeUsoCitandoAVariavel`, `toStringMascaraAChave`.
+  Green: record com `fromEnv(Map<String, String>)` e `toString` com `apiKey=***`. Sem chave
+  lança `InvalidScanRequestException` (a CLI já a traduz para código 1). O modelo padrão é
+  provisório (`nvidia/nemotron-3.5-lightning-30b-a3b`) até o passo 9.
+  `mvn clean verify`: 319 testes, 0 falhas.
 
 - [ ] **4. `Config.ollamaTimeout` → `llmTimeout`.** Refactor com os testes verdes
   (`ConfigTest`, `ContainerTest`); atualizar `docs/contracts.md`.
