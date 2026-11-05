@@ -3,7 +3,7 @@
 Saídas reais capturadas no laboratório local (DVWA em `:8080`, Juice Shop em `:3000`,
 imagens recém-subidas via `lab/docker-compose.yml`), para o relatório técnico. Os números
 abaixo são de uma execução nesta máquina; o relatório final usa a execução dos autores.
-O lado **LLM** exige Ollama no ar (`ollama serve` + `ollama pull mistral:7b-instruct-v0.3-q4_0`);
+O lado **LLM** exige Ollama no ar (`ollama serve` + `ollama pull qwen2.5:14b-instruct`);
 sem ele, o `LlmDetector` devolve "LLM indisponível" (veredito negativo), como aparece abaixo.
 
 ## 1. Scan — SQL injection no DVWA

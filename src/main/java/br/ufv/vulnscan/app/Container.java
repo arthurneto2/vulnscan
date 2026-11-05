@@ -102,12 +102,13 @@ public final class Container {
         return new BenchmarkService(runner, List.of("heuristic", "llm"));
     }
 
-    /** Detectores por nome: heurístico (puro) e LLM (Ollama com o modelo fixado em Config). */
+    /** Detectores por nome: heurístico (puro) e LLM (Ollama com o modelo e o timeout próprios de Config). */
     private Map<String, Detector> detectors() {
         Map<String, Detector> detectors = new LinkedHashMap<>();
         detectors.put("heuristic", new HeuristicDetector());
         detectors.put("llm", new LlmDetector(
-                new OllamaClient(httpClient, config.ollamaBaseUrl(), config.ollamaModel())));
+                new OllamaClient(new JdkHttpClient(config.ollamaTimeout()), config.ollamaBaseUrl(),
+                        config.ollamaModel())));
         return detectors;
     }
 

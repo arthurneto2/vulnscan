@@ -104,3 +104,16 @@ Spec: `spec.md` nesta pasta. Branch: `issue-61-llm-falso-positivo`.
   Green: `firstJsonBlock` acompanha aspas e escape. `mvn clean verify`: 305 testes, 0 falhas.
   Os números do passo 10 foram medidos **antes** desta correção; a comparação de modelos usa o
   código corrigido.
+
+- [x] **12. Modelo padrão de 14B e timeout próprio do Ollama** (pedido do usuário depois da
+  comparação; spec revisada, item 5).
+  Red: `ConfigTest#defaultsFixaTimeoutModeloEUrlDoOllama` passou a esperar
+  `qwen2.5:14b-instruct` e `ollamaTimeout` de 120 s (falhou: `was mistral:…`).
+  `ContainerTest#llmUsaTimeoutProprioMaiorQueODoAlvo`: Ollama falso demora 600 ms, alvo com
+  300 ms e Ollama com 5 s; com o cliente compartilhado o veredito estourava (`Achados: 0`).
+  O servidor de teste ganhou um pool de threads: com uma thread só, o `sleep` do Ollama falso
+  travava a requisição seguinte ao alvo (erro de setup, não de asserção).
+  Green: `Config` com `ollamaTimeout`; `Container` cria um `JdkHttpClient` próprio para o
+  `OllamaClient`. Docs: README, CLAUDE.md (mínimo de 14B), `llm-contract.md` (modelo, digest,
+  timeout), `contracts.md`, `evidencias.md`, `experiment.md` ("Escolha do modelo").
+  `mvn clean verify`: 306 testes, 0 falhas.

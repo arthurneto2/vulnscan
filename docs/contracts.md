@@ -216,8 +216,10 @@ public final class ScanService {
 public final class InvalidScanRequestException extends RuntimeException { ... }
 
 // app/Config.java — configuração fixa. Modelo e endpoint do Ollama fixados (#16).
-public record Config(java.time.Duration httpTimeout, java.net.URI ollamaBaseUrl, String ollamaModel) {
-    public static Config defaults() { ... }   // 30 s, http://localhost:11434, mistral:7b-instruct-v0.3-q4_0
+// httpTimeout vale para o alvo; ollamaTimeout, para cada chamada ao modelo (#61: o 14B é lento).
+public record Config(java.time.Duration httpTimeout, java.net.URI ollamaBaseUrl, String ollamaModel,
+                     java.time.Duration ollamaTimeout) {
+    public static Config defaults() { ... }   // 30 s, http://localhost:11434, qwen2.5:14b-instruct, 120 s
 }
 
 // app/BenchmarkRequest.java — pedido de benchmark da CLI. runs ≤ 0 → 3; outDir nulo → experiments/results.
