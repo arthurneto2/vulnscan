@@ -38,6 +38,11 @@ final class BenchmarkCommand implements Callable<Integer> {
             description = "Número de execuções. Padrão: ${DEFAULT-VALUE}.")
     private int runs;
 
+    @Option(names = "--llm", defaultValue = "ollama", paramLabel = "<backend>",
+            description = "Backend do detector llm: ollama (local) ou api (compatível com OpenAI; chave em "
+                    + "VULNSCAN_LLM_API_KEY). Padrão: ${DEFAULT-VALUE}.")
+    private String llm;
+
     @Option(names = "--out", paramLabel = "<dir>",
             description = "Diretório dos CSVs. Padrão: experiments/results.")
     private Path out;
@@ -45,7 +50,7 @@ final class BenchmarkCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         try {
-            Path summary = main.benchmarkService().run(new BenchmarkRequest(groundTruth, runs, out));
+            Path summary = main.benchmarkService(llm).run(new BenchmarkRequest(groundTruth, runs, out));
             spec.commandLine().getOut().printf("Benchmark concluído: %d execução(ões). Resumo: %s%n",
                     runs, summary);
             return Main.EXIT_OK;

@@ -122,6 +122,93 @@ class ContainerTest {
         assertTrue(md.contains("- **Achados:** 1"), md);
     }
 
+    /** Veredito "vulnerável" com evidência presente no corpo do DVWA falso (passa no grounding). */
+    private static final String SQLI_VERDICT = "{\\\"evidence\\\":\\\"You have an error in your SQL syntax\\\","
+            + "\\\"rationale\\\":\\\"erro de SQL\\\",\\\"vulnerable\\\":true,\\\"confidence\\\":0.9}";
+
+    /** Provedor compatível com OpenAI falso no mesmo servidor; guarda o header Authorization. */
+    private final List<String> authorizations = new CopyOnWriteArrayList<>();
+
+    private void fakeOpenAiProvider() {
+        server.createContext("/v1/chat/completions", exchange -> {
+            received.add(exchange.getRequestMethod() + " " + exchange.getRequestURI().getPath());
+            authorizations.add(exchange.getRequestHeaders().getFirst("Authorization"));
+            byte[] body = ("{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"" + SQLI_VERDICT
+                    + "\"}}]}").getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (OutputStream out = exchange.getResponseBody()) {
+                out.write(body);
+            }
+        });
+    }
+
+    private void fakeOllama() {
+        server.createContext("/api/generate", exchange -> {
+            received.add(exchange.getRequestMethod() + " " + exchange.getRequestURI().getPath());
+            byte[] body = ("{\"response\":\"" + SQLI_VERDICT + "\"}").getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (OutputStream out = exchange.getResponseBody()) {
+                out.write(body);
+            }
+        });
+    }
+
+    private Config localConfig() {
+        return new Config(Duration.ofSeconds(5), target(), "modelo-local", Duration.ofSeconds(5));
+    }
+
+    @Test
+    void llmApiUsaProvedorCompativelComOpenAi() throws IOException {
+        fakeOpenAiProvider();
+        Map<String, String> env = Map.of("VULNSCAN_LLM_API_KEY", "chave-falsa",
+                "VULNSCAN_LLM_API_URL", target() + "v1", "VULNSCAN_LLM_API_MODEL", "modelo-api");
+        Path out = dir.resolve("report.md");
+
+        new Container(localConfig(), env).scanService("api").scan(new ScanRequest(target(), List.of("sqli"),
+                "md", out, Map.of(), "llm"));
+
+        assertTrue(Files.readString(out).contains("- **Achados:** 1"), Files.readString(out));
+        assertTrue(received.contains("POST /v1/chat/completions"), "recebidas: " + received);
+        assertTrue(!received.contains("POST /api/generate"), "não chama o Ollama: " + received);
+        assertTrue(authorizations.stream().allMatch("Bearer chave-falsa"::equals), "auth: " + authorizations);
+    }
+
+    @Test
+    void llmOllamaUsaOOllamaEIgnoraAApi() throws IOException {
+        fakeOllama();
+        fakeOpenAiProvider();
+        Map<String, String> env = Map.of("VULNSCAN_LLM_API_KEY", "chave-falsa",
+                "VULNSCAN_LLM_API_URL", target() + "v1");
+        Path out = dir.resolve("report.md");
+
+        new Container(localConfig(), env).scanService("ollama").scan(new ScanRequest(target(), List.of("sqli"),
+                "md", out, Map.of(), "llm"));
+
+        assertTrue(Files.readString(out).contains("- **Achados:** 1"), Files.readString(out));
+        assertTrue(received.contains("POST /api/generate"), "recebidas: " + received);
+        assertTrue(!received.contains("POST /v1/chat/completions"), "não chama a API: " + received);
+    }
+
+    @Test
+    void llmApiSemChaveEErroDeUsoCitandoAVariavel() {
+        Container container = new Container(localConfig(), Map.of());
+
+        InvalidScanRequestException e = assertThrows(InvalidScanRequestException.class,
+                () -> container.scanService("api"));
+
+        assertTrue(e.getMessage().contains("VULNSCAN_LLM_API_KEY"), e.getMessage());
+    }
+
+    @Test
+    void llmDesconhecidoEErroDeUsoListandoAsOpcoes() {
+        Container container = new Container(localConfig(), Map.of());
+
+        InvalidScanRequestException e = assertThrows(InvalidScanRequestException.class,
+                () -> container.benchmarkService("gpt"));
+
+        assertTrue(e.getMessage().contains("gpt") && e.getMessage().contains("ollama, api"), e.getMessage());
+    }
+
     @Test
     void sqliEXssRodamJuntos() {
         ScanService service = new Container(Config.defaults()).scanService();

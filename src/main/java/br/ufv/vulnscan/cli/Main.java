@@ -11,6 +11,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -34,13 +35,14 @@ public final class Main implements Callable<Integer> {
     @Option(names = {"-h", "--help"}, usageHelp = true, description = "Mostra esta ajuda.")
     private boolean help;
 
-    private final Supplier<ScanService> scanService;
-    private final Supplier<BenchmarkService> benchmarkService;
+    /** Serviços por backend do detector "llm" ({@code --llm}: ollama | api). */
+    private final Function<String, ScanService> scanService;
+    private final Function<String, BenchmarkService> benchmarkService;
 
     public Main() {
         Container container = new Container(Config.defaults());
-        this.scanService = container::scanService;
-        this.benchmarkService = container::benchmarkService;
+        this.scanService = llm -> container.scanService(llm);
+        this.benchmarkService = llm -> container.benchmarkService(llm);
     }
 
     Main(Supplier<ScanService> scanService) {
@@ -49,7 +51,12 @@ public final class Main implements Callable<Integer> {
         });
     }
 
+    /** Para testes que não se importam com o backend do LLM. */
     Main(Supplier<ScanService> scanService, Supplier<BenchmarkService> benchmarkService) {
+        this(llm -> scanService.get(), llm -> benchmarkService.get());
+    }
+
+    Main(Function<String, ScanService> scanService, Function<String, BenchmarkService> benchmarkService) {
         this.scanService = scanService;
         this.benchmarkService = benchmarkService;
     }
@@ -58,12 +65,12 @@ public final class Main implements Callable<Integer> {
         System.exit(new CommandLine(new Main()).execute(args));
     }
 
-    ScanService scanService() {
-        return scanService.get();
+    ScanService scanService(String llm) {
+        return scanService.apply(llm);
     }
 
-    BenchmarkService benchmarkService() {
-        return benchmarkService.get();
+    BenchmarkService benchmarkService(String llm) {
+        return benchmarkService.apply(llm);
     }
 
     @Override

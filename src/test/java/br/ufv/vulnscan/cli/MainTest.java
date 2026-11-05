@@ -281,6 +281,74 @@ class MainTest {
         assertTrue(result.err().contains("detector desconhecido"), result.err());
     }
 
+    // --- --llm (issue #65): a CLI só repassa o backend à montagem ---
+
+    private final List<String> llms = new ArrayList<>();
+
+    /** Main que registra o backend pedido ao montar o ScanService. */
+    private Main mainRecordingLlm() {
+        Map<String, Function<Detector, VulnModule>> factories = new LinkedHashMap<>();
+        factories.put("sqli", detector -> new FakeModule("sqli", null));
+        Map<String, Detector> detectors = new LinkedHashMap<>();
+        detectors.put("heuristic", named("heuristic"));
+        detectors.put("llm", named("llm"));
+        return new Main(llm -> {
+            llms.add(llm);
+            return new ScanService(factories, detectors, List.of(md));
+        }, llm -> {
+            throw new UnsupportedOperationException("benchmark não usado");
+        });
+    }
+
+    /** Main com o Container real e ambiente vazio (sem VULNSCAN_LLM_API_KEY). */
+    private static Main mainWithEmptyEnv() {
+        br.ufv.vulnscan.app.Container container =
+                new br.ufv.vulnscan.app.Container(br.ufv.vulnscan.app.Config.defaults(), Map.of());
+        return new Main(llm -> container.scanService(llm), llm -> container.benchmarkService(llm));
+    }
+
+    @Test
+    void scanRepassaOLlmEscolhido() {
+        Result result = run(mainRecordingLlm(), "scan", "--target", "http://localhost:3000",
+                "--module", "sqli", "--detector", "llm", "--llm", "api");
+
+        assertEquals(0, result.code(), result.err());
+        assertEquals(List.of("api"), llms);
+    }
+
+    @Test
+    void scanSemLlmUsaOllama() {
+        Result result = run(mainRecordingLlm(), "scan", "--target", "http://localhost:3000", "--module", "sqli");
+
+        assertEquals(0, result.code(), result.err());
+        assertEquals(List.of("ollama"), llms);
+    }
+
+    @Test
+    void scanLlmApiSemChaveSaiComUmECitaAVariavel() {
+        Result result = run(mainWithEmptyEnv(), "scan", "--target", "http://localhost:1",
+                "--detector", "llm", "--llm", "api");
+
+        assertEquals(1, result.code(), result.err());
+        assertTrue(result.err().contains("VULNSCAN_LLM_API_KEY"), result.err());
+        assertFalse(result.err().contains("\tat "), result.err());
+    }
+
+    @Test
+    void scanLlmInvalidoSaiComUm() {
+        Result result = run(mainWithEmptyEnv(), "scan", "--target", "http://localhost:1", "--llm", "gpt");
+
+        assertEquals(1, result.code(), result.err());
+        assertTrue(result.err().contains("--llm inválido: gpt"), result.err());
+    }
+
+    @Test
+    void scanHelpMostraLlm() {
+        Result result = run(mainWith(registry()), "scan", "--help");
+
+        assertTrue(result.out().contains("--llm"), result.out());
+    }
+
     private static Result run(Main main, String... args) {
         StringWriter out = new StringWriter();
         StringWriter err = new StringWriter();
