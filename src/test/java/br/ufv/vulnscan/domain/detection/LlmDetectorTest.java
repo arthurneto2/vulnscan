@@ -234,6 +234,27 @@ class LlmDetectorTest {
         assertEquals("bloqueado", v.rationale());
     }
 
+    @Test
+    void chaveDesbalanceadaDentroDeStringNaoQuebraOParse() {
+        // caso real (qwen2.5:14b): o trecho citado abre um objeto JSON que não fecha dentro da string
+        Verdict v = detector("{\"evidence\": \"status\\\":\\\"success\\\",\\\"data\\\":{\\\"id\\\":11\", "
+                + "\"rationale\": \"dado protegido\", \"vulnerable\": true, \"confidence\": 1}")
+                .judge(authComCorpo("{\"status\":\"success\",\"data\":{\"id\":11,\"UserId\":2}}"));
+
+        assertTrue(v.vulnerable(), v.rationale());
+        assertEquals("dado protegido", v.rationale());
+    }
+
+    @Test
+    void chaveFechandoDentroDeStringNaoEncerraOBlocoAntes() {
+        Verdict v = detector("Resposta: {\"evidence\": \"}\", \"rationale\": \"r\", \"vulnerable\": false, "
+                + "\"confidence\": 0.7} fim").judge(sqli());
+
+        assertFalse(v.vulnerable());
+        assertEquals(0.7, v.confidence());
+        assertEquals("r", v.rationale());
+    }
+
     // Casos reais do checkpoint da #61: em JSON o modelo resume em vez de copiar.
 
     @Test

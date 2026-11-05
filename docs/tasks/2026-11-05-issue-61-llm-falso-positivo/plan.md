@@ -93,3 +93,27 @@ Spec: `spec.md` nesta pasta. Branch: `issue-61-llm-falso-positivo`.
   são XSS com a saída escapada, o limite do modelo com entidades HTML descrito na spec (causa 5).
   Não há correção no código sem copiar a regra da heurística; o próximo passo natural é
   comparar com outro modelo.
+
+- [x] **11. Bug do parse com chave dentro de string** (achado na comparação com
+  `qwen2.5:14b-instruct`). O modelo devolveu JSON válido e correto, mas o veredito saiu "resposta
+  do LLM não parseável". `firstJsonBlock` contava `{`/`}` sem saber se estava dentro de uma
+  string, e o `evidence` citava `"…\"data\":{\"id\":11"`, com chave aberta dentro da string. O
+  bug já existia; o campo `evidence` o tornou alcançável.
+  Red: `chaveDesbalanceadaDentroDeStringNaoQuebraOParse` e
+  `chaveFechandoDentroDeStringNaoEncerraOBlocoAntes` falharam (não parseável; confiança 0.0).
+  Green: `firstJsonBlock` acompanha aspas e escape. `mvn clean verify`: 305 testes, 0 falhas.
+  Os números do passo 10 foram medidos **antes** desta correção; a comparação de modelos usa o
+  código corrigido.
+
+- [x] **12. Modelo padrão de 14B e timeout próprio do Ollama** (pedido do usuário depois da
+  comparação; spec revisada, item 5).
+  Red: `ConfigTest#defaultsFixaTimeoutModeloEUrlDoOllama` passou a esperar
+  `qwen2.5:14b-instruct` e `ollamaTimeout` de 120 s (falhou: `was mistral:…`).
+  `ContainerTest#llmUsaTimeoutProprioMaiorQueODoAlvo`: Ollama falso demora 600 ms, alvo com
+  300 ms e Ollama com 5 s; com o cliente compartilhado o veredito estourava (`Achados: 0`).
+  O servidor de teste ganhou um pool de threads: com uma thread só, o `sleep` do Ollama falso
+  travava a requisição seguinte ao alvo (erro de setup, não de asserção).
+  Green: `Config` com `ollamaTimeout`; `Container` cria um `JdkHttpClient` próprio para o
+  `OllamaClient`. Docs: README, CLAUDE.md (mínimo de 14B), `llm-contract.md` (modelo, digest,
+  timeout), `contracts.md`, `evidencias.md`, `experiment.md` ("Escolha do modelo").
+  `mvn clean verify`: 306 testes, 0 falhas.

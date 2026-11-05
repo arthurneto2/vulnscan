@@ -90,12 +90,20 @@ módulos, vale para os dois detectores), mas entra no relatório como observaç�
    equipe que escreveu as regras; amplificação pelo "para no primeiro positivo"; limite
    do modelo com escape de HTML).
 
+5. **Troca do modelo (revisão de 2026-11-05, pedida pelo usuário).** Depois do checkpoint,
+   os FP restantes eram os dois XSS escapados, erro sistemático dos modelos de 7B. A comparação
+   com `qwen2.5:14b-instruct` zerou os FP (`docs/experiment.md`, "Escolha do modelo"). O padrão
+   de `Config` passa a ser `qwen2.5:14b-instruct`, e `Config` ganha `ollamaTimeout` (120 s,
+   cliente HTTP próprio do Ollama; o alvo continua com 30 s), porque o 14B leva até ~80 s por
+   veredito. Regra nova: modelo local tem no mínimo 14B parâmetros (CLAUDE.md, README,
+   `docs/llm-contract.md`).
+
 ## Fora do escopo
 
 - Guarda determinística por status ou por tipo depois do parse (decisão do usuário: o
   "llm" medido tem de ser só o LLM).
-- Trocar ou comparar modelo (sugestão da issue; vira issue nova se a meta não for
-  atingida).
+- ~~Trocar ou comparar modelo~~ — **entrou no escopo** (pedido do usuário em 2026-11-05,
+  depois do checkpoint): ver item 5 do escopo.
 - Mudar a política "para no primeiro positivo" dos módulos.
 - Criar o banco do DVWA no benchmark (#59) e resetar o lab entre runs (#60): para validar,
   faço os dois à mão.
@@ -104,7 +112,8 @@ módulos, vale para os dois detectores), mas entra no relatório como observaç�
 
 - `Verdict`, `Evidence`, `LlmClient`, `Detector`: **inalterados**.
 - `docs/llm-contract.md`: formato da saída (`evidence` novo, ordem dos campos), prompt e
-  regra de grounding. `docs/contracts.md` não muda.
+  regra de grounding.
+- `Config` (item 5): novo componente `ollamaTimeout`; `docs/contracts.md` atualizado.
 
 ## Critérios de aceite
 

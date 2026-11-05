@@ -62,6 +62,7 @@ class ContainerTest {
                 out.write(body);
             }
         });
+        server.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
         server.start();
     }
 
@@ -89,6 +90,36 @@ class ContainerTest {
         assertTrue(md.contains("You have an error in your SQL syntax"), md);
         assertTrue(!cookies.isEmpty() && cookies.stream().allMatch("PHPSESSID=abc; security=low"::equals),
                 "cookies: " + cookies);
+    }
+
+    /**
+     * O modelo de 14B leva ~20 s (máx. ~80 s) por veredito: o Ollama tem timeout próprio, maior que o
+     * do alvo. Aqui, em escala: o Ollama falso demora 600 ms; o alvo tem 300 ms e o Ollama 5 s.
+     */
+    @Test
+    void llmUsaTimeoutProprioMaiorQueODoAlvo() throws IOException {
+        server.createContext("/api/generate", exchange -> {
+            try {
+                Thread.sleep(600);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            String verdict = "{\\\"evidence\\\":\\\"You have an error in your SQL syntax\\\","
+                    + "\\\"rationale\\\":\\\"erro de SQL\\\",\\\"vulnerable\\\":true,\\\"confidence\\\":0.9}";
+            byte[] body = ("{\"response\":\"" + verdict + "\"}").getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (OutputStream out = exchange.getResponseBody()) {
+                out.write(body);
+            }
+        });
+        Path out = dir.resolve("report.md");
+        Config config = new Config(Duration.ofMillis(300), target(), "modelo", Duration.ofSeconds(5));
+
+        new Container(config).scanService().scan(new ScanRequest(target(), List.of("sqli"), "md", out,
+                Map.of(), "llm"));
+
+        String md = Files.readString(out);
+        assertTrue(md.contains("- **Achados:** 1"), md);
     }
 
     @Test

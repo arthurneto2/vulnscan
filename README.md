@@ -14,12 +14,18 @@ em API REST. Arquitetura hexagonal (ports & adapters); tudo open source e offlin
 - Ollama, para a camada de IA: https://ollama.com
 
 ```bash
-ollama pull mistral:7b-instruct-v0.3-q4_0
+ollama pull qwen2.5:14b-instruct
 ```
 
-Modelo fixado para o experimento (reprodutibilidade): tag `mistral:7b-instruct-v0.3-q4_0`,
-digest `sha256:<preencher após ollama pull>` (de `ollama list --digests`). A tag também está
-em `app/Config.java` (`Config.defaults()`).
+Modelo fixado para o experimento (reprodutibilidade): tag `qwen2.5:14b-instruct`
+(Q4_K_M, Apache-2.0, ~9 GB), digest `sha256:7cdf5a0187d5c58cc5d369b255592f7841d1c4696d45a8c8a9489440385b22f6`. A tag também está em
+`app/Config.java` (`Config.defaults()`).
+
+**Modelo local: mínimo de 14B parâmetros.** Modelos de 7B (Mistral 7B, Qwen2.5 7B) erram de
+forma sistemática ao julgar saída com escape de HTML e geram falso positivo fixo; o motivo e
+os números estão em `docs/experiment.md` ("Escolha do modelo"). O 14B roda numa GPU de 6 GB
+com parte das camadas na CPU (~20 s por veredito); por isso o Ollama tem timeout próprio de
+120 s.
 
 ## Laboratório de alvos
 

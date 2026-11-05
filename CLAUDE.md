@@ -83,7 +83,7 @@ java -jar target/vulnscan.jar scan --target http://localhost:3000 --module xss
 java -jar target/vulnscan.jar benchmark --ground-truth experiments/ground_truth.yaml
 
 # Pré-requisito da camada de IA: Ollama rodando com o modelo fixado
-ollama pull mistral:7b-instruct
+ollama pull qwen2.5:14b-instruct
 ```
 
 ## Regras de arquitetura (não negociáveis)
@@ -113,10 +113,15 @@ ollama pull mistral:7b-instruct
   `format: "json"`, temperatura baixa). Montar prompt e parsear JSON é do `LlmDetector`.
 - O `LlmDetector` **nunca lança exceção**: extrai o primeiro bloco `{...}`; se falhar,
   devolve `new Verdict(false, 0.0, "resposta do LLM não parseável", "llm")`. Timeout
-  (~30 s) também vira veredito de baixa confiança, não erro fatal.
+  (120 s, próprio do Ollama; o alvo usa 30 s) também vira veredito de baixa confiança, não
+  erro fatal.
 - Trunque o corpo da resposta HTTP (~4 KB) antes de pôr no prompt.
 - Modelo e versão fixados em `app/Config.java` (e no README) — é o que torna o experimento
   reproduzível.
+- **Modelo local: mínimo de 14B parâmetros** (hoje `qwen2.5:14b-instruct`). Não use nem
+  recomende modelos de 7B para testes ou para o experimento: erram de forma sistemática com
+  escape de HTML (FP fixo em XSS escapado). Motivo e números em `docs/experiment.md`
+  ("Escolha do modelo").
 
 ## Convenções de código
 

@@ -12,11 +12,13 @@ esse formato; ele só fala HTTP com o Ollama.
 ## Modelo
 
 - Runtime: Ollama local, endpoint `POST http://localhost:11434/api/generate`.
-- Modelo fixado: `mistral:7b-instruct` (Apache-2.0). A tag exata é
-  `mistral:7b-instruct-v0.3-q4_0`, fixada em `app/Config.java` (`Config.defaults()`) e no
-  README. Fixar a versão é o que torna o experimento reproduzível.
-- Digest de reprodutibilidade (preencher após `ollama pull`, de `ollama list --digests`):
-  `sha256:<preencher após ollama pull>`.
+- Modelo fixado: `qwen2.5:14b-instruct` (Qwen2.5 14B Instruct, Q4_K_M, Apache-2.0), em
+  `app/Config.java` (`Config.defaults()`) e no README. Fixar a versão é o que torna o
+  experimento reproduzível. Até a issue #61 era `mistral:7b-instruct-v0.3-q4_0`.
+- Digest de reprodutibilidade: `sha256:7cdf5a0187d5c58cc5d369b255592f7841d1c4696d45a8c8a9489440385b22f6`.
+- **Mínimo de 14B parâmetros para modelo local.** Os modelos de 7B testados (Mistral 7B,
+  Qwen2.5 7B) dão falso positivo fixo em XSS com saída escapada; ver
+  `docs/experiment.md`, "Escolha do modelo".
 - Parâmetros: `temperature: 0.1` para reduzir variação; `num_predict: 256` (teto de tokens
   gerados: sem ele, pedir um trecho de JSON longo fez o modelo entrar em repetição e o
   Ollama abortar com `token repeat limit reached`); `format: "json"` para forçar saída JSON;
@@ -24,7 +26,7 @@ esse formato; ele só fala HTTP com o Ollama.
 
 ## Prompt (estrutura)
 
-O prompt é em inglês (o Mistral 7B é mais estável em inglês) e tem quatro partes:
+O prompt é em inglês (os modelos testados são mais estáveis em inglês) e tem quatro partes:
 
 1. **Papel e aviso anti-viés:** analista revisando UM teste automatizado; "não vulnerável"
    é uma resposta comum e correta quando falta evidência; não concluir pela simples
@@ -88,8 +90,9 @@ medido continua sendo o julgamento do modelo, não uma cópia da heurística.
   Extraia o primeiro bloco `{...}` e parseie; se falhar, devolva
   `new Verdict(false, 0.0, "resposta do LLM não parseável", "llm")` e registre o ocorrido.
   Nunca deixe uma exceção de parsing derrubar o scan.
-- **Timeout.** `OllamaClient` tem timeout (ex.: 30 s). Se estourar, trate como veredito de
-  baixa confiança, não como erro fatal.
+- **Timeout.** O `OllamaClient` usa um `HttpClient` próprio com `Config.ollamaTimeout()`
+  (120 s; o alvo usa 30 s). O 14B levou mediana de 20 s e máximo de 78 s por veredito numa
+  GPU de 6 GB. Se estourar, vira veredito de baixa confiança, não erro fatal.
 - **Não determinismo.** Mesmo com temperatura baixa, o LLM varia. O experimento roda N
   vezes e reporta a variância; não assuma saída idêntica entre execuções.
 

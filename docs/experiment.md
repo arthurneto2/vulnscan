@@ -45,7 +45,7 @@ conhecida.
   ponto e param no primeiro positivo. Com k payloads e taxa de falso positivo p por payload,
   a taxa por caso é 1 − (1 − p)^k. Afeta os dois detectores, mas pesa no LLM, que não é
   determinístico.
-- **Limite do modelo com escape de HTML.** Na investigação da issue #61, o Mistral 7B às vezes
+- **Limite dos modelos de 7B com escape de HTML.** Na investigação da issue #61, o Mistral 7B às vezes
   citou corretamente `&lt;script&gt;…` e ainda concluiu "vulnerável". O grounding do
   `LlmDetector` só barra evidência que não existe na resposta, não raciocínio errado sobre
   evidência real.
@@ -56,6 +56,39 @@ conhecida.
   acrescentada depois de ver o resultado do benchmark (issue #61), nos mesmos 14 casos. Não
   há conjunto de teste separado, então os números do LLM depois dessa mudança podem estar
   otimistas.
+
+## Escolha do modelo (issue #61)
+
+O modelo do experimento passou de `mistral:7b-instruct-v0.3-q4_0` para `qwen2.5:14b-instruct`.
+Medição de 2026-11-05: mesmo prompt e mesmo grounding, 14 casos × 3 execuções, lab resetado
+e banco do DVWA criado antes de cada execução, RTX 4050 (6 GB), Ollama local.
+
+| Detector | VP | FP | VN | FN | Precisão | Recall | F1 | Taxa FP | Mediana | Máx. |
+|---|---|---|---|---|---|---|---|---|---|---|
+| heuristic | 24 | 0 | 18 | 0 | 1.000 | 1.000 | 1.000 | 0% | ~20 ms | — |
+| llm — Mistral 7B | 22 | 6 | 12 | 2 | 0.786 | 0.917 | 0.846 | 33% | 3.4 s | 22 s |
+| llm — Qwen2.5 14B | 19 | 0 | 18 | 5 | 1.000 | 0.792 | 0.884 | 0% | 20 s | 78 s |
+
+Uma medição anterior com `qwen2.5:7b-instruct` deu F1 0.750 (6 FP, 6 FN).
+
+**Por que trocar:**
+
+- Os dois modelos de 7B erram de forma **sistemática** em XSS com a saída escapada
+  (`dvwa-xss-stored-impossible` e `js-xss-redirect-escaped`, FP em 3/3 execuções). O Mistral
+  chega a citar `&lt;script&gt;` como evidência e concluir "não escapado". O prompt já explica
+  as entidades HTML e o grounding não pega raciocínio errado sobre evidência real, então
+  não havia correção possível no código sem copiar a regra da heurística para o detector "llm".
+- Com o mesmo prompt, o 14B acerta esses casos: precisão 1.0 e nenhum FP. Isso separa o efeito
+  do prompt do efeito do tamanho do modelo e é o resultado que testa a hipótese do trabalho
+  (a IA ajudar a reduzir falso positivo).
+- Custo: o 14B é ~6× mais lento (parte das camadas fica na CPU com 6 GB de VRAM) e mais
+  conservador. Os FN são `js-xss-dom-search` (3/3) e `js-idor-basket` (2/3). Por isso o
+  Ollama ganhou timeout próprio de 120 s (`Config.ollamaTimeout()`); com os 30 s do alvo,
+  parte dos vereditos viraria "LLM indisponível".
+
+**Regra a partir daqui:** testes e experimentos com modelo local usam **no mínimo 14B
+parâmetros**. Modelos de 7B não são recomendados. Para máquinas que não rodam o 14B, o caminho
+é a opção de IA via API (spec própria), não um modelo menor.
 
 ## Saída
 
