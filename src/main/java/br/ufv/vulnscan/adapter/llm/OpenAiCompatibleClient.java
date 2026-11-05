@@ -17,9 +17,9 @@ import java.util.Objects;
  * Adaptador: porta {@link LlmClient} via API compatível com OpenAI
  * ({@code POST <baseUrl>/chat/completions}), para usar um modelo hospedado (NVIDIA NIM, Groq,
  * Gemini etc.) no lugar do Ollama local (issue #65). Só fala HTTP e devolve
- * {@code choices[0].message.content}; o parse do veredito é do {@code LlmDetector}. Mesmos
- * parâmetros do {@code OllamaClient}: temperatura {@value #TEMPERATURE} e teto de
- * {@value #MAX_TOKENS} tokens gerados.
+ * {@code choices[0].message.content}; o parse do veredito é do {@code LlmDetector}. Mesma
+ * temperatura do {@code OllamaClient} ({@value #TEMPERATURE}); o teto de tokens gerados
+ * ({@value #MAX_TOKENS}) é maior porque inclui o raciocínio dos modelos que o expõem.
  *
  * <p>Falha de transporte/timeout propaga como {@link UncheckedIOException}; status fora de 2xx,
  * corpo que não é JSON ou sem conteúdo → {@link IllegalStateException}. <b>A chave nunca aparece
@@ -29,7 +29,9 @@ public final class OpenAiCompatibleClient implements LlmClient {
 
     private static final String COMPLETIONS_PATH = "/chat/completions";
     private static final double TEMPERATURE = 0.1;
-    private static final int MAX_TOKENS = 256;
+    /** Alto de propósito: modelos com raciocínio (Nemotron) gastam milhares de tokens no
+     *  {@code reasoning_content} antes do {@code content}; com 256 a resposta vinha {@code null}. */
+    private static final int MAX_TOKENS = 8192;
     private static final int MAX_ERROR_CHARS = 200;
 
     private final ObjectMapper mapper = new ObjectMapper();

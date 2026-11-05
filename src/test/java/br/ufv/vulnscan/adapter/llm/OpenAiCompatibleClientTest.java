@@ -70,7 +70,8 @@ class OpenAiCompatibleClientTest {
         assertEquals("user", body.path("messages").path(0).path("role").asText());
         assertEquals("meu prompt", body.path("messages").path(0).path("content").asText());
         assertEquals(0.1, body.path("temperature").asDouble(-1));
-        assertEquals(256, body.path("max_tokens").asInt(-1));
+        assertEquals(8192, body.path("max_tokens").asInt(-1),
+                "teto alto: modelos com raciocínio gastam tokens antes da resposta (finish_reason=length com 256)");
         assertFalse(body.path("stream").asBoolean(true), "stream deve ser false");
     }
 

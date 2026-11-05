@@ -42,7 +42,8 @@ experimento.
    porta não muda). Faz `POST <baseUrl>/chat/completions` com:
    - `Authorization: Bearer <chave>` e `Content-Type: application/json`;
    - corpo `{"model", "messages": [{"role": "user", "content": <prompt>}], "temperature": 0.1,
-     "max_tokens": 256, "stream": false}`.
+     "max_tokens": 8192, "stream": false}` (era 256; ver o passo 9 do plano: o raciocínio dos
+     modelos Nemotron consome o teto antes da resposta).
 
    Devolve `choices[0].message.content`. Status fora de 2xx ou resposta sem esse campo lança
    `IllegalStateException` com o status e um trecho do corpo, **nunca a chave**. Não envia
@@ -108,7 +109,7 @@ experimento.
 Adaptador (`OpenAiCompatibleClientTest`, `HttpServer` local):
 
 1. Envia `POST /v1/chat/completions` com `Authorization: Bearer <chave>`, e o corpo tem
-   `model`, `messages[0].content == prompt`, `temperature == 0.1` e `max_tokens == 256`.
+   `model`, `messages[0].content == prompt`, `temperature == 0.1` e `max_tokens == 8192`.
 2. Devolve `choices[0].message.content`.
 3. Com status 401/429/500, lança `IllegalStateException` com o status e sem a chave na
    mensagem.
