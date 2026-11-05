@@ -29,11 +29,14 @@ esse formato; ele só fala HTTP com o Ollama.
 - Adaptador `OpenAiCompatibleClient`: `POST <VULNSCAN_LLM_API_URL>/chat/completions` com
   `Authorization: Bearer <VULNSCAN_LLM_API_KEY>`; devolve `choices[0].message.content`. O
   prompt e o parse são os mesmos (`LlmDetector`); só muda o transporte.
-- Parâmetros equivalentes: `temperature: 0.1`, `max_tokens: 256`, `stream: false`. **Não**
+- Parâmetros: `temperature: 0.1`, `max_tokens: 8192`, `stream: false`. O teto é bem maior que
+  o `num_predict` do Ollama porque, nos modelos com raciocínio (Nemotron), ele inclui o
+  `reasoning_content`: com 256 a resposta vinha `null` (`finish_reason: length`). **Não**
   envia `response_format` (nem todo provedor aceita); o parse defensivo do `LlmDetector` já
   extrai o primeiro bloco `{...}`.
 - Padrão: NVIDIA NIM (`https://integrate.api.nvidia.com/v1`, gratuito para avaliação, ~40
-  req/min) com `nvidia/nemotron-3.5-lightning-30b-a3b`. O padrão sai do benchmark da #65.
+  req/min) com `nvidia/nemotron-3-ultra-550b-a55b`, escolhido no benchmark da #65 (ver
+  `docs/experiment.md`).
 - A chave só existe no ambiente e em memória: não aparece em log, exceção (o corpo de erro é
   mascarado), `toString` ou relatório.
 - Erro do provedor (401, 429, 5xx) ou timeout (`Config.llmTimeout()`, 120 s) vira

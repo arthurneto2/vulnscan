@@ -12,7 +12,7 @@ import java.util.Objects;
  * <ul>
  *   <li>{@value #KEY_VAR} — obrigatória;</li>
  *   <li>{@value #URL_VAR} — padrão: NVIDIA NIM ({@code https://integrate.api.nvidia.com/v1});</li>
- *   <li>{@value #MODEL_VAR} — padrão: {@code nvidia/nemotron-3.5-lightning-30b-a3b}.</li>
+ *   <li>{@value #MODEL_VAR} — padrão: {@code nvidia/nemotron-3-ultra-550b-a55b}.</li>
  * </ul>
  */
 public record ApiLlmConfig(URI baseUrl, String model, String apiKey) {
@@ -22,8 +22,8 @@ public record ApiLlmConfig(URI baseUrl, String model, String apiKey) {
     public static final String MODEL_VAR = "VULNSCAN_LLM_API_MODEL";
 
     private static final String DEFAULT_URL = "https://integrate.api.nvidia.com/v1";
-    /** Provisório até o checkpoint empírico da #65 (Lightning vs Ultra). */
-    private static final String DEFAULT_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b";
+    /** Vencedor do checkpoint da #65 (F1 0,93 estável, 0 FP; o Lightning variou e foi ~4x mais lento). */
+    private static final String DEFAULT_MODEL = "nvidia/nemotron-3-ultra-550b-a55b";
 
     public ApiLlmConfig {
         Objects.requireNonNull(baseUrl, "baseUrl");

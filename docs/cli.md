@@ -53,7 +53,7 @@ repositório):
 | ------------------------ | ---------------------------------------- | ---------------------------- |
 | `VULNSCAN_LLM_API_KEY`   | (obrigatória)                            | chave do provedor            |
 | `VULNSCAN_LLM_API_URL`   | `https://integrate.api.nvidia.com/v1`    | URL base (até o `/v1`)       |
-| `VULNSCAN_LLM_API_MODEL` | `nvidia/nemotron-3.5-lightning-30b-a3b`  | id do modelo no provedor     |
+| `VULNSCAN_LLM_API_MODEL` | `nvidia/nemotron-3-ultra-550b-a55b`  | id do modelo no provedor     |
 
 ```
 export VULNSCAN_LLM_API_KEY=...   # build.nvidia.com → "Get API Key"

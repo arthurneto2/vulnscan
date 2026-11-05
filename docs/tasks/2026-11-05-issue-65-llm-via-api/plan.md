@@ -71,9 +71,19 @@ modelo de 14B e o `ollamaTimeout` do PR #66).
 - [x] **8. `mvn clean verify`.** 330 testes, 0 falhas. Com o jar real, `scan --help` mostra
   `--llm`, e `scan --detector llm --llm api` sem a chave sai com código 1.
 
-- [ ] **9. Checkpoint empírico** (precisa de `VULNSCAN_LLM_API_KEY` do usuário, exportada no
-  shell dele; não passa pelo repositório nem pelos logs). Primeiro uma chamada de teste para
-  confirmar que a chave faz inferência (relatos de chave nova com 404). Depois o benchmark,
-  3 execuções por modelo, com `nemotron-3.5-lightning-30b-a3b` e `nemotron-3-ultra-550b-a55b`,
-  lab resetado e banco do DVWA criado antes de cada execução. Tabela em `docs/experiment.md`;
-  o vencedor vira o padrão em `ApiLlmConfig`. Contar os vereditos "LLM indisponível" por `429`.
+- [x] **9. Checkpoint empírico.** A chave vem do ambiente do usuário. A chamada de teste deu
+  200 nos dois modelos. O benchmark rodou 3 execuções por modelo, com o lab resetado e o banco
+  do DVWA criado antes de cada uma.
+  - **Desvio: teto de tokens.** A 1ª rodada (`max_tokens: 256`) deu F1 0 no Lightning e
+    0.40–0.77 no Ultra. O diagnóstico, com o prompt real mandado cru, mostrou
+    `finish_reason: length` e `content: null`: o `reasoning_content` gasta o teto. Red:
+    `OpenAiCompatibleClientTest#enviaChatCompletionsComBearerEParametros` passou a exigir 8192
+    (`expected 8192 but was 256`). Green: `MAX_TOKENS = 8192`. Spec e `llm-contract.md`
+    atualizados.
+  - **2ª rodada:** Ultra F1 0.933 (3/3 execuções iguais, 0 FP, mediana 6.5 s por caso);
+    Lightning F1 0.769 (variou de 0.67 a 0.86, mediana 60 s). Tabela em `docs/experiment.md`.
+  - **Padrão:** o Ultra. Red: `ApiLlmConfigTest#soChaveUsaPadroesDaNvidia` e
+    `variavelEmBrancoContaComoAusente` (`expected ...ultra... but was ...lightning...`).
+    Green: `DEFAULT_MODEL`; `docs/cli.md` e `llm-contract.md` atualizados.
+  - Não deu para contar os `429`: o CSV não guarda a justificativa. Os FN de confiança 0 do
+    Lightning podem ser timeout, `429` ou JSON inválido. Fica registrado como limitação.

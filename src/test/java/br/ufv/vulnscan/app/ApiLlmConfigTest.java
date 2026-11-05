@@ -20,7 +20,7 @@ class ApiLlmConfigTest {
         ApiLlmConfig config = ApiLlmConfig.fromEnv(Map.of("VULNSCAN_LLM_API_KEY", KEY));
 
         assertEquals(URI.create("https://integrate.api.nvidia.com/v1"), config.baseUrl());
-        assertEquals("nvidia/nemotron-3.5-lightning-30b-a3b", config.model());
+        assertEquals("nvidia/nemotron-3-ultra-550b-a55b", config.model());
         assertEquals(KEY, config.apiKey());
     }
 
@@ -41,7 +41,7 @@ class ApiLlmConfigTest {
                 "VULNSCAN_LLM_API_KEY", KEY, "VULNSCAN_LLM_API_URL", " ", "VULNSCAN_LLM_API_MODEL", ""));
 
         assertEquals(URI.create("https://integrate.api.nvidia.com/v1"), config.baseUrl());
-        assertEquals("nvidia/nemotron-3.5-lightning-30b-a3b", config.model());
+        assertEquals("nvidia/nemotron-3-ultra-550b-a55b", config.model());
     }
 
     @Test
