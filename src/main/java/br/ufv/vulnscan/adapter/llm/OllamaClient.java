@@ -21,12 +21,14 @@ import java.util.Objects;
  * <p>Reusa a porta {@link HttpClient} (transporte e timeout). Falha de transporte/timeout
  * propaga como {@link UncheckedIOException}; status fora de 2xx ou {@code response} ausente →
  * {@link IllegalStateException}. Temperatura baixa fixa ({@value #TEMPERATURE}) para reduzir
- * a variação do modelo.
+ * a variação do modelo e teto de {@value #MAX_TOKENS} tokens gerados ({@code num_predict}).
  */
 public final class OllamaClient implements LlmClient {
 
     private static final String GENERATE_PATH = "/api/generate";
     private static final double TEMPERATURE = 0.1;
+    /** Teto de tokens gerados: o veredito JSON é curto; sem teto o modelo pode entrar em repetição. */
+    private static final int MAX_TOKENS = 256;
     private static final Map<String, String> JSON = Map.of("Content-Type", "application/json");
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -62,7 +64,7 @@ public final class OllamaClient implements LlmClient {
         body.put("prompt", prompt);
         body.put("stream", false);
         body.put("format", "json");
-        body.putObject("options").put("temperature", TEMPERATURE);
+        body.putObject("options").put("temperature", TEMPERATURE).put("num_predict", MAX_TOKENS);
         try {
             return mapper.writeValueAsString(body);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {

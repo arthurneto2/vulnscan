@@ -71,6 +71,15 @@ class OllamaClientTest {
     }
 
     @Test
+    void corpoLevaTetoDeTokens() throws IOException {
+        client().complete("meu prompt");
+
+        JsonNode options = MAPPER.readTree(requestBody).path("options");
+        assertEquals(256, options.path("num_predict").asInt(-1), "teto de tokens gerados: " + options);
+        assertEquals(0.1, options.path("temperature").asDouble(-1));
+    }
+
+    @Test
     void enviaContentTypeJson() {
         client().complete("x");
 
