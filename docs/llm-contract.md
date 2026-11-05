@@ -17,34 +17,70 @@ esse formato; ele só fala HTTP com o Ollama.
   README. Fixar a versão é o que torna o experimento reproduzível.
 - Digest de reprodutibilidade (preencher após `ollama pull`, de `ollama list --digests`):
   `sha256:<preencher após ollama pull>`.
-- Parâmetros: `temperature` baixo (ex.: 0.1) para reduzir variação; `format: "json"` para
-  forçar saída JSON; `stream: false`.
+- Parâmetros: `temperature: 0.1` para reduzir variação; `num_predict: 256` (teto de tokens
+  gerados: sem ele, pedir um trecho de JSON longo fez o modelo entrar em repetição e o
+  Ollama abortar com `token repeat limit reached`); `format: "json"` para forçar saída JSON;
+  `stream: false`.
 
 ## Prompt (estrutura)
 
-O `LlmDetector` monta um prompt com três partes:
+O prompt é em inglês (o Mistral 7B é mais estável em inglês) e tem quatro partes:
 
-1. Instrução de papel: "Você é um analisador de segurança. Decida se a resposta HTTP
-   indica a vulnerabilidade do tipo X. Responda só com JSON no formato especificado."
-2. O tipo de falha em teste (`VulnType`) e o payload aplicado.
-3. A evidência: método + URL, trecho relevante dos headers, e o corpo da resposta
-   (truncado a um limite, ex.: 4 KB, para não estourar o contexto do modelo).
+1. **Papel e aviso anti-viés:** analista revisando UM teste automatizado; "não vulnerável"
+   é uma resposta comum e correta quando falta evidência; não concluir pela simples
+   presença do payload ou pelo nome do teste.
+2. **Tipo e critério:** o `VulnType` e um critério de evidência em texto para esse tipo
+   (SQLi: erro de banco causado pelo payload ou mudança clara na lógica, como atraso;
+   XSS: payload com `<` e `>` literais em resposta HTML, e entidades `&lt; &gt;` significam
+   escapado; auth/controle de acesso: a requisição foi feita indevida de propósito, e só 2xx
+   com dado protegido é vulnerável). O critério é contexto para o modelo julgar; o código
+   não aplica regra por tipo ao veredito.
+3. **Evidência completa:** payload, descrição do payload (ex.: "probe de NONE (requisição
+   sem token)"), método + URL, headers da requisição, status, tempo de resposta (ms),
+   headers da resposta e corpo truncado a 4 KB.
+4. **Formato da saída**, com os campos na ordem abaixo.
 
 Não mande a resposta HTTP inteira sem truncar — modelos pequenos têm janela limitada.
 
 ## Saída esperada (JSON)
 
-O modelo deve devolver exatamente:
+O modelo deve devolver, **nesta ordem** (evidência e raciocínio antes do veredito):
 
 ```json
 {
+  "evidence": "You have an error in your SQL syntax",
+  "rationale": "A resposta contém um erro de sintaxe SQL do MySQL, indicando que o payload chegou ao banco.",
   "vulnerable": true,
-  "confidence": 0.82,
-  "rationale": "A resposta contém um erro de sintaxe SQL do MySQL, indicando que o payload chegou ao banco."
+  "confidence": 0.82
 }
 ```
 
-Mapeamento para `Verdict`: os três campos + `detector = "llm"`.
+`evidence` é um trecho de até 120 caracteres copiado literalmente do corpo da resposta, ou
+`""`. A ordem importa: com `vulnerable` primeiro, o modelo se comprometia com o veredito
+antes de raciocinar e respondia "vulnerável" em 100% dos casos (issue #61), inclusive com
+justificativa contraditória ("401 Unauthorized" e `vulnerable: true`).
+
+Mapeamento para `Verdict`: `vulnerable`, `confidence`, `rationale` + `detector = "llm"`,
+depois do grounding abaixo. O parse lê por nome de campo, então a ordem não é exigida no
+parse, só pedida no prompt.
+
+## Grounding (obrigatório)
+
+Se `vulnerable == true` e `evidence` estiver vazio, ausente ou não aparecer no corpo da
+resposta, o veredito vira
+`new Verdict(false, 0.2, "veredito do LLM sem evidência na resposta: <rationale>", "llm")`.
+A comparação ignora espaços em branco e maiúsculas e **não** desfaz escape de HTML (o caso
+real era o modelo citar `<script>…` cru quando o corpo tinha `&lt;script&gt;…`).
+
+Se o trecho não estiver literalmente no corpo mas for JSON válido, ainda conta como presente
+quando: é uma string JSON e o texto desembrulhado está no corpo (ex.: `"OWASP Juice Shop!"`),
+ou é objeto/array e **todos** os pares `"chave":valor` escalares citados, em qualquer nível,
+estão no corpo, com ao menos um par (ex.: `{"id":12,"UserId":31}` contra
+`{"id":12,"coupon":null,"UserId":31,…}`). Motivo: em respostas JSON o modelo resume em vez
+de copiar; a regra literal rejeitava vereditos corretos (checkpoint da issue #61). Elisões
+como `{"data": [...]}` não contam. Vereditos
+`false` não são alterados. A regra é genérica, igual para todos os tipos: o detector "llm"
+medido continua sendo o julgamento do modelo, não uma cópia da heurística.
 
 ## Robustez (obrigatória)
 

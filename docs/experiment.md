@@ -37,6 +37,26 @@ conhecida.
 - Semente/ordem dos casos estável.
 - O relatório cita a variância entre as N execuções como limitação honesta.
 
+## Limitações (citar no relatório)
+
+- **Gabarito pequeno e validado pela mesma equipe** que escreveu as regras da heurística.
+  F1 = 1.0 da heurística pode refletir isso, não generalização.
+- **Amplificação por "para no primeiro positivo".** Os módulos testam vários payloads por
+  ponto e param no primeiro positivo. Com k payloads e taxa de falso positivo p por payload,
+  a taxa por caso é 1 − (1 − p)^k. Afeta os dois detectores, mas pesa no LLM, que não é
+  determinístico.
+- **Limite do modelo com escape de HTML.** Na investigação da issue #61, o Mistral 7B às vezes
+  citou corretamente `&lt;script&gt;…` e ainda concluiu "vulnerável". O grounding do
+  `LlmDetector` só barra evidência que não existe na resposta, não raciocínio errado sobre
+  evidência real.
+- **Grounding no `LlmDetector`.** O detector "llm" rebaixa um `vulnerable: true` sem trecho de
+  evidência presente na resposta (`docs/llm-contract.md`). É uma regra genérica, igual para
+  todo tipo; nenhuma regra de vulnerabilidade por tipo é aplicada ao veredito do LLM.
+- **Ajuste informado pelo gabarito.** A aceitação de evidência JSON resumida no grounding foi
+  acrescentada depois de ver o resultado do benchmark (issue #61), nos mesmos 14 casos. Não
+  há conjunto de teste separado, então os números do LLM depois dessa mudança podem estar
+  otimistas.
+
 ## Saída
 
 - `experiments/results/run-<n>.csv`: uma linha por (caso, detector) com veredito,
