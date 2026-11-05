@@ -64,10 +64,12 @@ modelo de 14B e o `ollamaTimeout` do PR #66).
   e não `container::scanService`: a referência a um método sobrecarregado deixaria a chamada
   ao construtor ambígua. `mvn clean verify`: 330 testes, 0 falhas.
 
-- [ ] **7. Docs.** README (chave da NVIDIA, variáveis, aviso de dados), CLAUDE.md (regra da
-  IA), `docs/cli.md`, `docs/llm-contract.md`, `docs/contracts.md`.
+- [x] **7. Docs.** README (chave da NVIDIA, variáveis, aviso de dados), CLAUDE.md (regra da
+  IA e timeout), `docs/cli.md` (`--llm` e tabela de variáveis), `docs/llm-contract.md`
+  (seção do backend via API). `docs/contracts.md` já foi atualizado nos passos 4 e 5.
 
-- [ ] **8. `mvn clean verify`.**
+- [x] **8. `mvn clean verify`.** 330 testes, 0 falhas. Com o jar real, `scan --help` mostra
+  `--llm`, e `scan --detector llm --llm api` sem a chave sai com código 1.
 
 - [ ] **9. Checkpoint empírico** (precisa de `VULNSCAN_LLM_API_KEY` do usuário, exportada no
   shell dele; não passa pelo repositório nem pelos logs). Primeiro uma chamada de teste para
