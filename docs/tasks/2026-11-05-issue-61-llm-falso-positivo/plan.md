@@ -93,3 +93,14 @@ Spec: `spec.md` nesta pasta. Branch: `issue-61-llm-falso-positivo`.
   são XSS com a saída escapada, o limite do modelo com entidades HTML descrito na spec (causa 5).
   Não há correção no código sem copiar a regra da heurística; o próximo passo natural é
   comparar com outro modelo.
+
+- [x] **11. Bug do parse com chave dentro de string** (achado na comparação com
+  `qwen2.5:14b-instruct`). O modelo devolveu JSON válido e correto, mas o veredito saiu "resposta
+  do LLM não parseável". `firstJsonBlock` contava `{`/`}` sem saber se estava dentro de uma
+  string, e o `evidence` citava `"…\"data\":{\"id\":11"`, com chave aberta dentro da string. O
+  bug já existia; o campo `evidence` o tornou alcançável.
+  Red: `chaveDesbalanceadaDentroDeStringNaoQuebraOParse` e
+  `chaveFechandoDentroDeStringNaoEncerraOBlocoAntes` falharam (não parseável; confiança 0.0).
+  Green: `firstJsonBlock` acompanha aspas e escape. `mvn clean verify`: 305 testes, 0 falhas.
+  Os números do passo 10 foram medidos **antes** desta correção; a comparação de modelos usa o
+  código corrigido.

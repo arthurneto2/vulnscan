@@ -163,7 +163,10 @@ public final class LlmDetector implements Detector {
         }
     }
 
-    /** Primeiro bloco {@code {...}} balanceado do texto, ou null se não houver. */
+    /**
+     * Primeiro bloco {@code {...}} balanceado do texto, ou null se não houver. Chaves dentro de
+     * strings JSON não contam (o {@code evidence} costuma citar trechos de JSON com chave aberta).
+     */
     private static String firstJsonBlock(String text) {
         if (text == null) {
             return null;
@@ -173,9 +176,21 @@ public final class LlmDetector implements Detector {
             return null;
         }
         int depth = 0;
+        boolean inString = false;
+        boolean escaped = false;
         for (int i = start; i < text.length(); i++) {
             char c = text.charAt(i);
-            if (c == '{') {
+            if (inString) {
+                if (escaped) {
+                    escaped = false;
+                } else if (c == '\\') {
+                    escaped = true;
+                } else if (c == '"') {
+                    inString = false;
+                }
+            } else if (c == '"') {
+                inString = true;
+            } else if (c == '{') {
                 depth++;
             } else if (c == '}') {
                 depth--;
