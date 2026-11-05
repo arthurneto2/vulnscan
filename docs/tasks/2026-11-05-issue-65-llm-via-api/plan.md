@@ -39,20 +39,25 @@ modelo de 14B e o `ollamaTimeout` do PR #66).
   (`ConfigTest`, `ContainerTest`); `docs/contracts.md`, `llm-contract.md` e `experiment.md`
   atualizados. `mvn clean verify`: 319 testes, 0 falhas.
 
-- [ ] **5. App: escolha do backend.**
-  Red: `ContainerTest#llmApiUsaProvedorCompativelComOpenAi`. O `HttpServer` local responde
-  `/v1/chat/completions` e o `/` imita o DVWA; o `Container` recebe o mapa de ambiente com URL
-  local e chave falsa; scan `sqli` com `detector=llm` e `llm=api` → `Achados: 1`.
-  `ContainerTest#semLlmUsaOllama` (protege o padrão).
-  Green: campo `llm` em `ScanRequest`/`BenchmarkRequest` (construtores antigos mantidos); o
-  `Container(Config, Map<String, String> env)` monta o `LlmClient` conforme o `llm`.
-  `new Container(config)` delega com `System.getenv()`.
+- [x] **5. App: escolha do backend.** (Desvio da spec: os requests não ganham `llm`; ver
+  item 4 da spec.)
+  Red (3 falhas por asserção, com esqueletos que ignoravam o `llm`):
+  `ContainerTest#llmApiUsaProvedorCompativelComOpenAi` (o `HttpServer` local responde
+  `/v1/chat/completions` e o `/` imita o DVWA; `Achados: 1`, `Bearer` certo, nenhuma chamada a
+  `/api/generate`), `llmApiSemChaveEErroDeUsoCitandoAVariavel`,
+  `llmDesconhecidoEErroDeUsoListandoAsOpcoes`. Proteção que já passava:
+  `llmOllamaUsaOOllamaEIgnoraAApi`.
+  Green: `Container(Config, Map<String, String> env)`, `scanService(String)` e
+  `benchmarkService(String)`; `llmClient(llm)` monta o `OllamaClient` ou o
+  `OpenAiCompatibleClient`, os dois com `JdkHttpClient(llmTimeout)`. `docs/contracts.md`
+  atualizado. `mvn clean verify`: 323 testes, 0 falhas.
 
 - [ ] **6. CLI.**
   Red: `ScanCommandTest#llmApiSemChaveSaiComUmECitaVariavel`, `llmInvalidoSaiComUm`,
   `BenchmarkCommandTest#aceitaLlmApi` (com ambiente falso).
-  Green: `@Option --llm` nos dois comandos, que só repassam o valor no pedido; erro de
-  configuração vira código 1.
+  Green: `@Option --llm` nos dois comandos; o `Main` guarda `Function<String, ScanService>` e
+  `Function<String, BenchmarkService>` (era `Supplier`) e a CLI só repassa o valor. O erro de
+  configuração (`InvalidScanRequestException`) vira código 1.
 
 - [ ] **7. Docs.** README (chave da NVIDIA, variáveis, aviso de dados), CLAUDE.md (regra da
   IA), `docs/cli.md`, `docs/llm-contract.md`, `docs/contracts.md`.

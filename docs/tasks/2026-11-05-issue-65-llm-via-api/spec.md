@@ -61,9 +61,13 @@ experimento.
 3. **CLI:** opção `--llm ollama|api` em `scan` e em `benchmark`, com padrão `ollama`. Valor
    inválido, ou `api` sem `VULNSCAN_LLM_API_KEY`, dá código de saída `1` (erro de uso) e uma
    mensagem que diz qual variável definir. A CLI só traduz o argumento e passa no pedido.
-4. **App:** `ScanRequest` e `BenchmarkRequest` ganham `String llm` (nulo ou vazio vira
-   `ollama`; construtores antigos mantidos). O `Container` monta o `LlmClient` do detector
-   "llm" conforme o pedido. `Config.ollamaTimeout` passa a se chamar `llmTimeout` (120 s, vale
+4. **App:** o `Container` ganha `scanService(String llm)` e `benchmarkService(String llm)`
+   e monta o `LlmClient` do detector "llm" conforme o backend; os métodos sem argumento usam
+   `ollama`. O `Container(Config, Map<String, String> env)` recebe o ambiente (injetável em
+   teste); o `Container(Config)` usa `System.getenv()`. **Desvio (passo 5):** a spec previa
+   um campo `llm` em `ScanRequest`/`BenchmarkRequest`, mas o backend é escolha de montagem,
+   não do caso de uso. Com o campo, o `ScanService` teria de saber construir um `LlmClient`.
+   Assim os requests e os serviços não mudam. `Config.ollamaTimeout` passa a se chamar `llmTimeout` (120 s, vale
    para os dois backends).
 5. **Docs:**
    - `docs/contracts.md`: requests, `ApiLlmConfig` e `Config`.
@@ -94,8 +98,10 @@ experimento.
 
 ## Contratos tocados
 
-`LlmClient`, `Detector`, `Verdict` e `Evidence` não mudam. Mudam `ScanRequest`,
-`BenchmarkRequest` e `Config`, e entra o `ApiLlmConfig` novo (registrar em `docs/contracts.md`).
+`LlmClient`, `Detector`, `Verdict`, `Evidence`, `ScanRequest`, `BenchmarkRequest`,
+`ScanService` e `BenchmarkService` não mudam. Mudam `Config` (`llmTimeout`) e `Container`
+(métodos com `llm`), e entram o `ApiLlmConfig` e o `OpenAiCompatibleClient` (registrados em
+`docs/contracts.md`).
 
 ## Critérios de aceite
 
