@@ -56,6 +56,32 @@ mvn package -DskipTests
 Nota: o teste do adaptador Selenium (`SeleniumBrowserTest`) é **pulado** se o Chrome não
 puder ser iniciado no ambiente; o restante da suíte não depende de navegador nem de rede.
 
+## Download de uma versão pronta
+
+Cada tag `v*` publicada no GitHub gera automaticamente um Release com:
+
+- `vulnscan.jar`: aplicação executável;
+- `vulnscan-vX.Y.Z.tar.gz`: JAR, laboratório Docker, gabarito do benchmark e documentação.
+
+Para executar, instale Java 21, baixe `vulnscan.jar` e rode:
+
+```bash
+java -jar vulnscan.jar scan --target http://localhost:3000 --module xss
+```
+
+O JAR não inclui Java, Docker, as imagens do laboratório, Ollama ou o modelo de IA.
+Para usar o laboratório, execute `docker compose -f lab/docker-compose.yml up -d`.
+Para usar o detector LLM, instale o Ollama e baixe o modelo fixado neste README.
+
+Para criar uma nova versão, publique uma tag no formato `vX.Y.Z`:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+O workflow de Release executará os testes e anexará os dois arquivos à página da versão.
+
 ## Scan
 
 ```

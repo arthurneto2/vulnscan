@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build e testes
+        run: mvn -B -ntp clean verify
+      - name: Montar pacote de distribuição
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME}"
+          package_root="vulnscan-${version}"
+          mkdir -p "dist/${package_root}"
+          cp target/vulnscan.jar "dist/${package_root}/"
+          cp README.md "dist/${package_root}/"
+          cp -R lab "dist/${package_root}/"
+          mkdir -p "dist/${package_root}/experiments" "dist/${package_root}/docs"
+          cp experiments/ground_truth.yaml "dist/${package_root}/experiments/"
+          cp docs/cli.md docs/ground-truth.md docs/experiment.md "dist/${package_root}/docs/"
+          tar -czf "dist/${package_root}.tar.gz" -C dist "${package_root}"
+      - name: Publicar GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            target/vulnscan.jar
+            dist/vulnscan-${{ github.ref_name }}.tar.gz
