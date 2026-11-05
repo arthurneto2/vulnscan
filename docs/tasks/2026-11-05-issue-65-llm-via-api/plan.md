@@ -52,12 +52,17 @@ modelo de 14B e o `ollamaTimeout` do PR #66).
   `OpenAiCompatibleClient`, os dois com `JdkHttpClient(llmTimeout)`. `docs/contracts.md`
   atualizado. `mvn clean verify`: 323 testes, 0 falhas.
 
-- [ ] **6. CLI.**
-  Red: `ScanCommandTest#llmApiSemChaveSaiComUmECitaVariavel`, `llmInvalidoSaiComUm`,
-  `BenchmarkCommandTest#aceitaLlmApi` (com ambiente falso).
-  Green: `@Option --llm` nos dois comandos; o `Main` guarda `Function<String, ScanService>` e
-  `Function<String, BenchmarkService>` (era `Supplier`) e a CLI só repassa o valor. O erro de
-  configuração (`InvalidScanRequestException`) vira código 1.
+- [x] **6. CLI.**
+  Red (6 falhas por asserção, `Unknown options: '--llm'`): `MainTest#scanRepassaOLlmEscolhido`,
+  `scanLlmApiSemChaveSaiComUmECitaAVariavel` e `scanLlmInvalidoSaiComUm` (os dois com o
+  `Container` real e ambiente vazio), `scanHelpMostraLlm`;
+  `BenchmarkCommandTest#benchmarkRepassaOLlmEscolhido`, `benchmarkLlmApiSemChaveSai1`.
+  Proteção que já passava: `scanSemLlmUsaOllama`.
+  Green: `@Option --llm` (padrão `ollama`) nos dois comandos; o `Main` guarda
+  `Function<String, ScanService>`/`Function<String, BenchmarkService>`. Os construtores com
+  `Supplier` continuam para os testes antigos. Nos testes, `llm -> container.scanService(llm)`
+  e não `container::scanService`: a referência a um método sobrecarregado deixaria a chamada
+  ao construtor ambígua. `mvn clean verify`: 330 testes, 0 falhas.
 
 - [ ] **7. Docs.** README (chave da NVIDIA, variáveis, aviso de dados), CLAUDE.md (regra da
   IA), `docs/cli.md`, `docs/llm-contract.md`, `docs/contracts.md`.
