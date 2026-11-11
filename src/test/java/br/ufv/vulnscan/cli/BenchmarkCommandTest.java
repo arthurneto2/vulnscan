@@ -56,6 +56,35 @@ class BenchmarkCommandTest {
         assertFalse(r.err().contains("\tat "), r.err());
     }
 
+    @Test
+    void benchmarkRepassaOLlmEscolhido() throws IOException {
+        List<String> llms = new java.util.ArrayList<>();
+        Main main = new Main(llm -> {
+            throw new UnsupportedOperationException("scan não usado");
+        }, llm -> {
+            llms.add(llm);
+            return new BenchmarkService(runner, List.of("heuristic"));
+        });
+
+        Result r = run(main, "benchmark", "--ground-truth", gabarito().toString(), "--runs", "1",
+                "--out", dir.resolve("res").toString(), "--llm", "api");
+
+        assertEquals(0, r.code(), r.err());
+        assertEquals(List.of("api"), llms);
+    }
+
+    @Test
+    void benchmarkLlmApiSemChaveSai1() throws IOException {
+        br.ufv.vulnscan.app.Container container =
+                new br.ufv.vulnscan.app.Container(br.ufv.vulnscan.app.Config.defaults(), java.util.Map.of());
+        Main main = new Main(llm -> container.scanService(llm), llm -> container.benchmarkService(llm));
+
+        Result r = run(main, "benchmark", "--ground-truth", gabarito().toString(), "--llm", "api");
+
+        assertEquals(1, r.code(), r.err());
+        assertTrue(r.err().contains("VULNSCAN_LLM_API_KEY"), r.err());
+    }
+
     private Path gabarito() throws IOException {
         Path gt = dir.resolve("gt.yaml");
         Files.writeString(gt, """
@@ -75,6 +104,10 @@ class BenchmarkCommandTest {
         Main main = new Main(() -> {
             throw new UnsupportedOperationException("scan não usado");
         }, () -> new BenchmarkService(runner, List.of("heuristic")));
+        return run(main, args);
+    }
+
+    private Result run(Main main, String... args) {
         StringWriter out = new StringWriter();
         StringWriter err = new StringWriter();
         CommandLine cli = new CommandLine(main);

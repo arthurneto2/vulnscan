@@ -11,7 +11,9 @@ em API REST. Arquitetura hexagonal (ports & adapters); tudo open source e offlin
 
 - Java 21 (JDK) e Maven
 - Docker e Docker Compose (para o laboratório de alvos)
-- Ollama, para a camada de IA: https://ollama.com
+- Para a camada de IA, **um dos dois**:
+  - Ollama local (padrão): https://ollama.com, com o modelo abaixo;
+  - uma chave de API de um provedor compatível com OpenAI (`--llm api`, ver abaixo).
 
 ```bash
 ollama pull qwen2.5:14b-instruct
@@ -26,6 +28,23 @@ forma sistemática ao julgar saída com escape de HTML e geram falso positivo fi
 os números estão em `docs/experiment.md` ("Escolha do modelo"). O 14B roda numa GPU de 6 GB
 com parte das camadas na CPU (~20 s por veredito); por isso o Ollama tem timeout próprio de
 120 s.
+
+### IA via API (sem modelo local)
+
+Para quem não tem máquina para o 14B, o detector `llm` pode usar um modelo hospedado:
+
+1. Crie uma chave gratuita em https://build.nvidia.com (conta NVIDIA Developer e verificação
+   de telefone; o plano gratuito é para avaliação e tem limite de ~40 req/min).
+2. Exporte a chave **no seu shell** (nunca em arquivo do repositório):
+   `export VULNSCAN_LLM_API_KEY=nvapi-...`
+3. Rode com `--llm api`, ex.: `java -jar target/vulnscan.jar scan --target http://localhost:3000 --module xss --detector llm --llm api`.
+
+URL e modelo podem ser trocados com `VULNSCAN_LLM_API_URL` e `VULNSCAN_LLM_API_MODEL`
+(qualquer API compatível com OpenAI; detalhes em `docs/cli.md`).
+
+> **Aviso de dados:** no plano gratuito a NVIDIA registra o que é enviado e pode usar para
+> treinar modelos. O vulnscan só envia requisições e respostas do laboratório local; não use
+> `--llm api` contra sistemas com dados reais.
 
 ## Laboratório de alvos
 

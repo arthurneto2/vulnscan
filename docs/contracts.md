@@ -169,6 +169,9 @@ public interface HttpClient {
 // port/LlmClient.java  → adapter: OllamaClient (POST {ollamaBaseUrl}/api/generate; monta o
 //   corpo {model,prompt,stream:false,format:"json",options.temperature} e devolve o campo
 //   "response" cru; status != 2xx ou sem "response" → IllegalStateException)
+//   → adapter: OpenAiCompatibleClient (#65; POST {baseUrl}/chat/completions com Bearer,
+//   {model,messages:[{role:user,content}],temperature,max_tokens,stream:false}; devolve
+//   choices[0].message.content; erro → IllegalStateException sem a chave na mensagem)
 // Recebe um prompt pronto e devolve o texto cru do modelo (espera-se JSON; ver
 // docs/llm-contract.md). Quem monta o prompt e faz o parse é o LlmDetector.
 public interface LlmClient {
@@ -216,9 +219,9 @@ public final class ScanService {
 public final class InvalidScanRequestException extends RuntimeException { ... }
 
 // app/Config.java — configuração fixa. Modelo e endpoint do Ollama fixados (#16).
-// httpTimeout vale para o alvo; ollamaTimeout, para cada chamada ao modelo (#61: o 14B é lento).
+// httpTimeout vale para o alvo; llmTimeout, para cada chamada ao modelo, Ollama ou API (#61, #65).
 public record Config(java.time.Duration httpTimeout, java.net.URI ollamaBaseUrl, String ollamaModel,
-                     java.time.Duration ollamaTimeout) {
+                     java.time.Duration llmTimeout) {
     public static Config defaults() { ... }   // 30 s, http://localhost:11434, qwen2.5:14b-instruct, 120 s
 }
 
@@ -233,10 +236,21 @@ public final class BenchmarkService {
 }
 
 // app/Container.java — raiz de composição: instancia adaptadores e injeta nos módulos.
+// O backend do detector "llm" (--llm, #65) é escolha de montagem, não do caso de uso:
+// "ollama" (padrão) | "api"; inválido ou "api" sem chave → InvalidScanRequestException.
 public final class Container {
-    public Container(Config config) { ... }
-    public ScanService scanService() { ... }
+    public Container(Config config) { ... }                                   // env = System.getenv()
+    public Container(Config config, java.util.Map<String, String> env) { ... }
+    public ScanService scanService() { ... }                                  // = scanService("ollama")
+    public ScanService scanService(String llm) { ... }
     public BenchmarkService benchmarkService() { ... }   // LabCaseRunner + detectores heuristic/llm
+    public BenchmarkService benchmarkService(String llm) { ... }
+}
+
+// app/ApiLlmConfig.java — IA via API (#65), lida do ambiente: VULNSCAN_LLM_API_KEY (obrigatória),
+// VULNSCAN_LLM_API_URL (padrão NVIDIA NIM), VULNSCAN_LLM_API_MODEL. toString mascara a chave.
+public record ApiLlmConfig(java.net.URI baseUrl, String model, String apiKey) {
+    public static ApiLlmConfig fromEnv(java.util.Map<String, String> env) { ... }  // sem chave → InvalidScanRequestException
 }
 ```
 

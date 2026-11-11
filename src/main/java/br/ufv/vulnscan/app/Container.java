@@ -4,6 +4,7 @@ import br.ufv.vulnscan.adapter.browser.SeleniumBrowser;
 import br.ufv.vulnscan.adapter.http.JdkHttpClient;
 import br.ufv.vulnscan.adapter.http.JuiceShopSession;
 import br.ufv.vulnscan.adapter.llm.OllamaClient;
+import br.ufv.vulnscan.adapter.llm.OpenAiCompatibleClient;
 import br.ufv.vulnscan.adapter.report.HtmlReportWriter;
 import br.ufv.vulnscan.adapter.report.JsonReportWriter;
 import br.ufv.vulnscan.adapter.report.MarkdownReportWriter;
@@ -28,6 +29,7 @@ import br.ufv.vulnscan.app.benchmark.LabCaseRunner;
 import br.ufv.vulnscan.domain.module.XssBrowser;
 import br.ufv.vulnscan.domain.module.XssModule;
 import br.ufv.vulnscan.port.HttpClient;
+import br.ufv.vulnscan.port.LlmClient;
 import br.ufv.vulnscan.port.ReportWriter;
 
 import java.io.IOException;
@@ -82,34 +84,66 @@ public final class Container {
     private final HttpClient httpClient;
     private final XssBrowser browser = new SeleniumBrowser();
     private final ApiSession apiSession = new JuiceShopSession();
-    private final Config config;
+    /** Backend do detector "llm" ({@code --llm}): Ollama local (padrão) ou API compatível com OpenAI. */
+    public static final String LLM_OLLAMA = "ollama";
+    public static final String LLM_API = "api";
 
+    private final Config config;
+    private final Map<String, String> env;
+
+    /** Lê a configuração da API (só usada com {@code --llm api}) das variáveis de ambiente reais. */
     public Container(Config config) {
+        this(config, System.getenv());
+    }
+
+    /** @param env variáveis de ambiente (injetáveis para teste); a chave da API vem daqui. */
+    public Container(Config config, Map<String, String> env) {
         this.config = config;
+        this.env = Map.copyOf(env);
         this.httpClient = new JdkHttpClient(config.httpTimeout());
     }
 
     public ScanService scanService() {
-        return new ScanService(moduleFactories(), detectors(), writers());
+        return scanService(LLM_OLLAMA);
+    }
+
+    /** @param llm backend do detector "llm"; inválido ou {@code api} sem chave → erro de uso. */
+    public ScanService scanService(String llm) {
+        return new ScanService(moduleFactories(), detectors(llm), writers());
+    }
+
+    public BenchmarkService benchmarkService() {
+        return benchmarkService(LLM_OLLAMA);
     }
 
     /** Caso de uso do experimento: LabCaseRunner com os dois detectores sobre os módulos reais. */
-    public BenchmarkService benchmarkService() {
-        CaseRunner runner = new LabCaseRunner(detectors(), httpClient, browser, apiSession,
+    public BenchmarkService benchmarkService(String llm) {
+        CaseRunner runner = new LabCaseRunner(detectors(llm), httpClient, browser, apiSession,
                 payloads(SQLI_PAYLOADS, VulnType.SQL_INJECTION),
                 payloads(XSS_PAYLOADS, VulnType.XSS_REFLECTED),
                 payloads(XSS_PAYLOADS, VulnType.XSS_STORED), Container::newMarker);
         return new BenchmarkService(runner, List.of("heuristic", "llm"));
     }
 
-    /** Detectores por nome: heurístico (puro) e LLM (Ollama com o modelo e o timeout próprios de Config). */
-    private Map<String, Detector> detectors() {
+    /** Detectores por nome: heurístico (puro) e LLM, com o backend escolhido e o timeout próprio. */
+    private Map<String, Detector> detectors(String llm) {
         Map<String, Detector> detectors = new LinkedHashMap<>();
         detectors.put("heuristic", new HeuristicDetector());
-        detectors.put("llm", new LlmDetector(
-                new OllamaClient(new JdkHttpClient(config.ollamaTimeout()), config.ollamaBaseUrl(),
-                        config.ollamaModel())));
+        detectors.put("llm", new LlmDetector(llmClient(llm)));
         return detectors;
+    }
+
+    private LlmClient llmClient(String llm) {
+        HttpClient http = new JdkHttpClient(config.llmTimeout());
+        if (llm == null || llm.isBlank() || llm.equals(LLM_OLLAMA)) {
+            return new OllamaClient(http, config.ollamaBaseUrl(), config.ollamaModel());
+        }
+        if (llm.equals(LLM_API)) {
+            ApiLlmConfig api = ApiLlmConfig.fromEnv(env);
+            return new OpenAiCompatibleClient(http, api.baseUrl(), api.model(), api.apiKey());
+        }
+        throw new InvalidScanRequestException("--llm inválido: " + llm + " (disponíveis: "
+                + LLM_OLLAMA + ", " + LLM_API + ")");
     }
 
     /** Fábricas de módulo por nome de {@code --module}, na ordem; cada uma recebe o Detector escolhido. */

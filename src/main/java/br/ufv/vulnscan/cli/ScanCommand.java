@@ -55,6 +55,11 @@ final class ScanCommand implements Callable<Integer> {
             description = "Detector do veredito: heuristic, llm ou both. Padrão: ${DEFAULT-VALUE}.")
     private String detector;
 
+    @Option(names = "--llm", defaultValue = "ollama", paramLabel = "<backend>",
+            description = "Backend do detector llm: ollama (local) ou api (compatível com OpenAI; chave em "
+                    + "VULNSCAN_LLM_API_KEY). Padrão: ${DEFAULT-VALUE}.")
+    private String llm;
+
     @Option(names = "--format", defaultValue = "md", paramLabel = "<fmt>",
             description = "Formato do relatório. Padrão: ${DEFAULT-VALUE}.")
     private String format;
@@ -72,7 +77,7 @@ final class ScanCommand implements Callable<Integer> {
                     "aviso: o alvo %s não é localhost; o vulnscan é para o laboratório local.%n", host);
         }
         try {
-            ScanReport report = main.scanService().scan(
+            ScanReport report = main.scanService(llm).scan(
                     new ScanRequest(target, modules, format, output, parseHeaders(headers), detector));
             spec.commandLine().getOut().printf("Scan concluído: %d achado(s). Relatório: %s%n",
                     report.findings().size(), output);

@@ -24,6 +24,26 @@ esse formato; ele só fala HTTP com o Ollama.
   Ollama abortar com `token repeat limit reached`); `format: "json"` para forçar saída JSON;
   `stream: false`.
 
+## Backend via API (`--llm api`, issue #65)
+
+- Adaptador `OpenAiCompatibleClient`: `POST <VULNSCAN_LLM_API_URL>/chat/completions` com
+  `Authorization: Bearer <VULNSCAN_LLM_API_KEY>`; devolve `choices[0].message.content`. O
+  prompt e o parse são os mesmos (`LlmDetector`); só muda o transporte.
+- Parâmetros: `temperature: 0.1`, `max_tokens: 8192`, `stream: false`. O teto é bem maior que
+  o `num_predict` do Ollama porque, nos modelos com raciocínio (Nemotron), ele inclui o
+  `reasoning_content`: com 256 a resposta vinha `null` (`finish_reason: length`). **Não**
+  envia `response_format` (nem todo provedor aceita); o parse defensivo do `LlmDetector` já
+  extrai o primeiro bloco `{...}`.
+- Padrão: NVIDIA NIM (`https://integrate.api.nvidia.com/v1`, gratuito para avaliação, ~40
+  req/min) com `nvidia/nemotron-3-ultra-550b-a55b`, escolhido no benchmark da #65 (ver
+  `docs/experiment.md`).
+- A chave só existe no ambiente e em memória: não aparece em log, exceção (o corpo de erro é
+  mascarado), `toString` ou relatório.
+- Erro do provedor (401, 429, 5xx) ou timeout (`Config.llmTimeout()`, 120 s) vira
+  `Verdict(false, 0.0, "LLM indisponível: …")`, como no Ollama. Não há retry em 429.
+- **Dados:** no plano gratuito, a NVIDIA registra entradas e saídas e pode usá-las para
+  melhorar seus modelos. Só mandamos tráfego do laboratório (DVWA/Juice Shop).
+
 ## Prompt (estrutura)
 
 O prompt é em inglês (os modelos testados são mais estáveis em inglês) e tem quatro partes:
@@ -90,7 +110,7 @@ medido continua sendo o julgamento do modelo, não uma cópia da heurística.
   Extraia o primeiro bloco `{...}` e parseie; se falhar, devolva
   `new Verdict(false, 0.0, "resposta do LLM não parseável", "llm")` e registre o ocorrido.
   Nunca deixe uma exceção de parsing derrubar o scan.
-- **Timeout.** O `OllamaClient` usa um `HttpClient` próprio com `Config.ollamaTimeout()`
+- **Timeout.** O `OllamaClient` usa um `HttpClient` próprio com `Config.llmTimeout()`
   (120 s; o alvo usa 30 s). O 14B levou mediana de 20 s e máximo de 78 s por veredito numa
   GPU de 6 GB. Se estourar, vira veredito de baixa confiança, não erro fatal.
 - **Não determinismo.** Mesmo com temperatura baixa, o LLM varia. O experimento roda N

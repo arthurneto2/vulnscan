@@ -110,10 +110,11 @@ ollama pull qwen2.5:14b-instruct
 ## Camada de IA (regras de `docs/llm-contract.md` que quebram o experimento se ignoradas)
 
 - `OllamaClient` só fala HTTP (`POST localhost:11434/api/generate`, `stream: false`,
-  `format: "json"`, temperatura baixa). Montar prompt e parsear JSON é do `LlmDetector`.
+  `format: "json"`, temperatura baixa). O `OpenAiCompatibleClient` (`--llm api`) idem, via
+  `POST <url>/chat/completions`. Montar prompt e parsear JSON é do `LlmDetector`.
 - O `LlmDetector` **nunca lança exceção**: extrai o primeiro bloco `{...}`; se falhar,
   devolve `new Verdict(false, 0.0, "resposta do LLM não parseável", "llm")`. Timeout
-  (120 s, próprio do Ollama; o alvo usa 30 s) também vira veredito de baixa confiança, não
+  (`Config.llmTimeout`, 120 s, vale para Ollama e API; o alvo usa 30 s) também vira veredito de baixa confiança, não
   erro fatal.
 - Trunque o corpo da resposta HTTP (~4 KB) antes de pôr no prompt.
 - Modelo e versão fixados em `app/Config.java` (e no README) — é o que torna o experimento
@@ -138,7 +139,10 @@ ollama pull qwen2.5:14b-instruct
 ## Segurança e escopo
 
 - O scanner só aponta para `localhost` / alvos do laboratório. Nunca para a internet.
-- Nada de credenciais, chaves ou tokens no repositório. A IA é 100% local (Ollama).
+- Nada de credenciais, chaves ou tokens no repositório. A IA é local por padrão (Ollama);
+  a opção `--llm api` (issue #65) usa um provedor compatível com OpenAI, com a chave **só**
+  em variável de ambiente (`VULNSCAN_LLM_API_KEY`) — nunca em arquivo, argumento, log,
+  mensagem de erro ou relatório. Testes nunca chamam o provedor real (usam `HttpServer`).
 - Só os três tipos de falha do escopo: injeção SQL, XSS (refletido e armazenado) e
   autenticação/autorização em API REST.
 - O gabarito (`experiments/ground_truth.yaml`) precisa de casos **negativos** (~metade por
