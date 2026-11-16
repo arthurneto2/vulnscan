@@ -1,11 +1,19 @@
 package br.ufv.vulnscan.app.benchmark;
 
+import br.ufv.vulnscan.app.benchmark.GroundTruth.Case;
+import br.ufv.vulnscan.domain.model.HttpResponse;
+import br.ufv.vulnscan.domain.model.VulnType;
 import br.ufv.vulnscan.domain.module.InjectionPoint;
+import br.ufv.vulnscan.port.HttpClient;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.Map;
 
-/** Testa, offline, a derivação do ponto de injeção a partir do location do gabarito. */
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
+
+/** Testa, offline, a derivação do ponto de injeção e a escolha do HttpClient por caso. */
 class LabCaseRunnerTest {
 
     @Test
@@ -36,5 +44,27 @@ class LabCaseRunnerTest {
     void domQuandoLocationTemFragmento() {
         assertEquals(true, LabCaseRunner.isDom("/#/search?q="));
         assertEquals(false, LabCaseRunner.isDom("/vulnerabilities/xss_r/?name="));
+    }
+
+    private static final HttpClient PLAIN = request -> new HttpResponse(200, Map.of(), "", 1);
+
+    @Test
+    void impossibleDoDvwaUsaClienteComToken() {
+        Case c = new Case("dvwa-sqli-impossible", VulnType.SQL_INJECTION,
+                "/vulnerabilities/sqli/?Submit=Submit&id=", "impossible", null, false, null);
+        assertInstanceOf(DvwaCsrfHttpClient.class, LabCaseRunner.httpFor(c, PLAIN));
+    }
+
+    @Test
+    void lowEJuiceShopUsamClientePuro() {
+        Case low = new Case("dvwa-sqli-low", VulnType.SQL_INJECTION,
+                "/vulnerabilities/sqli/?Submit=Submit&id=", "low", null, true, null);
+        Case semNivel = new Case("dvwa-xss", VulnType.XSS_REFLECTED,
+                "/vulnerabilities/xss_r/?name=", null, null, true, null);
+        Case juice = new Case("juice-search", VulnType.SQL_INJECTION,
+                "/rest/products/search?q=", null, null, true, null);
+        assertSame(PLAIN, LabCaseRunner.httpFor(low, PLAIN));
+        assertSame(PLAIN, LabCaseRunner.httpFor(semNivel, PLAIN));
+        assertSame(PLAIN, LabCaseRunner.httpFor(juice, PLAIN));
     }
 }

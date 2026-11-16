@@ -59,6 +59,15 @@ conhecida.
   há conjunto de teste separado, então os números do LLM depois dessa mudança podem estar
   otimistas.
 
+- **Negativos do DVWA antes da #68.** No nível `impossible`, o DVWA exige um token
+  anti-CSRF novo a cada submissão e, sem ele, responde `302` antes de executar a consulta.
+  Até a #68, o benchmark não mandava o token. Então os três negativos do DVWA
+  (`dvwa-sqli-impossible`, `dvwa-xss-reflected-impossible`, `dvwa-xss-stored-impossible`)
+  foram julgados pelo redirect, não pela página segura, nas rodadas das seções abaixo (#61 e
+  #65). O FP do LLM nesses casos pode ter saído subestimado; as rodadas precisam ser
+  refeitas. Desde a #68, o benchmark busca o token antes de cada submissão. O GET extra
+  entra no tempo médio dos casos `impossible`, igual para os dois detectores.
+
 ## Escolha do modelo (issue #61)
 
 O modelo do experimento passou de `mistral:7b-instruct-v0.3-q4_0` para `qwen2.5:14b-instruct`.
