@@ -77,6 +77,7 @@ public final class LabCaseRunner implements CaseRunner {
     }
 
     private VulnModule moduleFor(Case c, Detector detector) {
+        HttpClient http = httpFor(c, this.http);
         return switch (c.type()) {
             case SQL_INJECTION -> new SqlInjectionModule(http, detector, sqliPayloads,
                     List.of(pointFromLocation(c.location())));
@@ -93,8 +94,7 @@ public final class LabCaseRunner implements CaseRunner {
     }
 
     private Target target(Case c, URI baseUrl) {
-        boolean dvwa = c.location().startsWith("/vulnerabilities");
-        if (!dvwa) {
+        if (!isDvwa(c)) {
             return new Target(baseUrl.getAuthority(), baseUrl);
         }
         String level = c.security() == null ? "low" : c.security();
@@ -111,6 +111,18 @@ public final class LabCaseRunner implements CaseRunner {
 
     private static AuthMode authMode(String value) {
         return value == null ? AuthMode.NONE : AuthMode.valueOf(value);
+    }
+
+    /**
+     * Cliente HTTP do caso: DVWA no nível {@code impossible} exige o token anti-CSRF em cada
+     * submissão ({@link DvwaCsrfHttpClient}); os demais usam o cliente puro.
+     */
+    static HttpClient httpFor(Case c, HttpClient http) {
+        return isDvwa(c) && "impossible".equals(c.security()) ? new DvwaCsrfHttpClient(http) : http;
+    }
+
+    private static boolean isDvwa(Case c) {
+        return c.location().startsWith("/vulnerabilities");
     }
 
     /** location "…/path?fixo=val&param=" → ponto (path + query fixa, param no fim). */

@@ -47,7 +47,7 @@ final class DvwaSession {
         URI loginUrl = baseUrl.resolve("/login.php");
         HttpResponse page = http.send(new HttpRequest("GET", loginUrl, Map.of(), null));
         String sid = firstMatch(PHPSESSID, page.headers().getOrDefault("set-cookie", ""));
-        String token = firstMatch(USER_TOKEN, page.body());
+        String token = userToken(page.body());
         String cookie = "PHPSESSID=" + sid + "; security=" + level;
         String body = "username=admin&password=password&user_token=" + token + "&Login=Login";
         HttpResponse response = post(loginUrl, cookie, body);
@@ -58,7 +58,7 @@ final class DvwaSession {
     private void createDatabase(URI baseUrl, String cookie) {
         URI setupUrl = baseUrl.resolve("/setup.php");
         HttpResponse page = http.send(new HttpRequest("GET", setupUrl, Map.of("Cookie", cookie), null));
-        String token = firstMatch(USER_TOKEN, page.body());
+        String token = userToken(page.body());
         post(setupUrl, cookie, "create_db=Create+%2F+Reset+Database&user_token=" + token);
     }
 
@@ -73,6 +73,11 @@ final class DvwaSession {
     }
 
     private record Attempt(String cookie, boolean needsSetup) {
+    }
+
+    /** O {@code user_token} anti-CSRF do formulário da página, ou "" se não houver. */
+    static String userToken(String body) {
+        return firstMatch(USER_TOKEN, body);
     }
 
     private static String firstMatch(Pattern pattern, String text) {
