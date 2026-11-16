@@ -3,8 +3,6 @@ package br.ufv.vulnscan.app.benchmark;
 import br.ufv.vulnscan.app.benchmark.GroundTruth.Case;
 import br.ufv.vulnscan.domain.detection.Detector;
 import br.ufv.vulnscan.domain.model.Finding;
-import br.ufv.vulnscan.domain.model.HttpRequest;
-import br.ufv.vulnscan.domain.model.HttpResponse;
 import br.ufv.vulnscan.domain.model.Payload;
 import br.ufv.vulnscan.domain.model.Target;
 import br.ufv.vulnscan.domain.module.ApiAuthModule;
@@ -28,20 +26,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Aplicação (experimento): {@link CaseRunner} de laboratório. Para cada caso, monta um módulo
  * de um ponto só a partir do {@code location}/tipo e roda com o detector pedido; o previsto é
- * "o módulo reportou achado?". DVWA: loga uma vez por nível {@code security} e manda o cookie.
+ * "o módulo reportou achado?". DVWA: loga uma vez por nível {@code security} (via
+ * {@link DvwaSession}, que cria o banco se preciso) e manda o cookie.
  * Juice Shop: a autenticação de API fica no {@link ApiSession}.
  */
 public final class LabCaseRunner implements CaseRunner {
-
-    private static final Pattern USER_TOKEN =
-            Pattern.compile("user_token'\\s*value='([a-f0-9]+)'");
-    private static final Pattern PHPSESSID = Pattern.compile("PHPSESSID=([^;\\s]+)");
 
     private final Map<String, Detector> detectors;
     private final HttpClient http;
@@ -51,6 +44,7 @@ public final class LabCaseRunner implements CaseRunner {
     private final List<Payload> xssReflectedPayloads;
     private final List<Payload> xssStoredPayloads;
     private final Supplier<String> markers;
+    private final DvwaSession dvwaSession;
     private final Map<String, String> dvwaCookies = new LinkedHashMap<>();
 
     public LabCaseRunner(Map<String, Detector> detectors, HttpClient http, XssBrowser browser,
@@ -64,6 +58,7 @@ public final class LabCaseRunner implements CaseRunner {
         this.xssReflectedPayloads = List.copyOf(xssReflectedPayloads);
         this.xssStoredPayloads = List.copyOf(xssStoredPayloads);
         this.markers = markers;
+        this.dvwaSession = new DvwaSession(http);
     }
 
     @Override
@@ -103,21 +98,8 @@ public final class LabCaseRunner implements CaseRunner {
             return new Target(baseUrl.getAuthority(), baseUrl);
         }
         String level = c.security() == null ? "low" : c.security();
-        String cookie = dvwaCookies.computeIfAbsent(baseUrl + "|" + level, k -> login(baseUrl, level));
+        String cookie = dvwaCookies.computeIfAbsent(baseUrl + "|" + level, k -> dvwaSession.login(baseUrl, level));
         return new Target(baseUrl.getAuthority(), baseUrl, Map.of("Cookie", cookie));
-    }
-
-    /** Login no DVWA; devolve o header Cookie (PHPSESSID + security=<nível>). */
-    private String login(URI baseUrl, String level) {
-        URI loginUrl = baseUrl.resolve("/login.php");
-        HttpResponse page = http.send(new HttpRequest("GET", loginUrl, Map.of(), null));
-        String sid = firstMatch(PHPSESSID, page.headers().getOrDefault("set-cookie", ""));
-        String token = firstMatch(USER_TOKEN, page.body());
-        String cookie = "PHPSESSID=" + sid + "; security=" + level;
-        String body = "username=admin&password=password&user_token=" + token + "&Login=Login";
-        http.send(new HttpRequest("POST", loginUrl,
-                Map.of("Cookie", cookie, "Content-Type", "application/x-www-form-urlencoded"), body));
-        return cookie;
     }
 
     private static StoredXssPoint guestbook(String location) {
@@ -129,11 +111,6 @@ public final class LabCaseRunner implements CaseRunner {
 
     private static AuthMode authMode(String value) {
         return value == null ? AuthMode.NONE : AuthMode.valueOf(value);
-    }
-
-    private static String firstMatch(Pattern pattern, String text) {
-        Matcher m = pattern.matcher(text == null ? "" : text);
-        return m.find() ? m.group(1) : "";
     }
 
     /** location "…/path?fixo=val&param=" → ponto (path + query fixa, param no fim). */

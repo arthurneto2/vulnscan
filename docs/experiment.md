@@ -33,7 +33,9 @@ conhecida.
 - Modelo e versão fixados (`app/Config.java`), temperatura baixa.
 - Mesma versão das imagens Docker do laboratório — fixadas por digest (`@sha256:`) em
   `lab/docker-compose.yml`, não por `:latest`.
-- Alvo resetado entre execuções (o XSS armazenado suja o banco).
+- Alvo resetado entre execuções (o XSS armazenado suja o banco). Depois do reset, o banco
+  do DVWA não existe; desde a #59 o próprio benchmark o cria (`setup.php`) antes do login e
+  aborta com erro se não conseguir. As rodadas antes disso criaram o banco à mão.
 - Semente/ordem dos casos estável.
 - O relatório cita a variância entre as N execuções como limitação honesta.
 

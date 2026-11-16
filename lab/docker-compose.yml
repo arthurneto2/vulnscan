@@ -20,7 +20,7 @@ services:
     container_name: vulnscan-dvwa
     ports:
       - "8080:80"
-    restart: unless-stopped
+    restart: "no"
 
   juice-shop:
     # bkimminich/juice-shop:latest em 2026-11-04
@@ -28,4 +28,4 @@ services:
     container_name: vulnscan-juice-shop
     ports:
       - "3000:3000"
-    restart: unless-stopped
+    restart: "no"
