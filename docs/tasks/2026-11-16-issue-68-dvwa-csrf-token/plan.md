@@ -62,3 +62,18 @@ Spec: `spec.md` nesta pasta. Branch: `issue-68-dvwa-csrf-token` (a partir de `ma
     esqueleto supunha `?` na URL), não como falha de asserção. É a falta do comportamento,
     não erro de setup. O passo 5 (extrator compartilhado) foi feito junto com o green dos
     passos 3 e 4.
+
+- [x] **10. Rodadas do LLM com a página real (escopo ampliado a pedido do usuário).**
+  Qwen 14B (Ollama) e Nemotron Ultra (API), 3 execuções de `--runs 1` cada, com reset do lab
+  antes de cada uma (#60 aberta), commit `73febb7`.
+  - **1ª tentativa descartada:** o cache de prompts do Ollama em RAM cresceu até 8 GB, a
+    RAM e o swap lotaram, a geração caiu de 5,4 para 0,7 tok/s e todas as chamadas a partir
+    das 14:25 estouraram os 120 s. O notebook também suspendeu no meio (15:17–19:12). Os
+    dados ficaram só locais, em `experiments/results/2026-11-16-ollama-qwen14b-INVALIDA-swap/`.
+  - **Correção:** `LLAMA_ARG_CACHE_RAM=0 ollama serve` (o cache não muda as respostas;
+    economizava < 0,5 s por chamada), máquina na tomada, ciclo dentro de
+    `systemd-inhibit --what=sleep:idle:handle-lid-switch`.
+  - **Resultado:** nenhum timeout (90/90 `200` no Ollama, nenhum erro na API). Qwen
+    20/0/18/4, F1 0.909; Ultra 21/0/18/3, F1 0.933; heurística 24/0/18/0. FP do LLM 0% com
+    os negativos `impossible` julgados pela página real. Registrado em `docs/experiment.md`
+    ("Rodada após as #59 e #68" e "Reprodutibilidade") e no README (aviso de RAM do Ollama).

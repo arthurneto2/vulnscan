@@ -54,8 +54,10 @@ o DVWA realmente devolve (consulta parametrizada, saída escapada).
 
 ## Fora do escopo
 
-- Refazer as rodadas do experimento com o LLM (precisa de Ollama ou da chave da API; fica
-  para quando o usuário rodar o protocolo completo).
+- ~~Refazer as rodadas do experimento com o LLM.~~ Entrou no escopo a pedido do usuário
+  (2026-11-16), depois do checkpoint: rodadas com o Qwen 14B local e o Nemotron Ultra, 3
+  execuções cada, registradas em `docs/experiment.md`. O Lightning ficou de fora, também a
+  pedido. Ver passo 10 do plano.
 - O `scan` manual com `--header` em nível `impossible` (só o benchmark muda).
 - Reset entre execuções (#60).
 
