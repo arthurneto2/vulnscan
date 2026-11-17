@@ -13,10 +13,10 @@ seguir.
 
 ## Fase 0 — Esqueleto que compila
 
-- [ ] `pom.xml` com Java 21 e as dependências (já previstas); plugin shade para gerar
+- [x] `pom.xml` com Java 21 e as dependências (já previstas); plugin shade para gerar
       `target/vulnscan.jar`.
-- [ ] Os `record` e `enum` de `domain/model/` (assinaturas em `docs/contracts.md`).
-- [ ] As interfaces `Detector`, `VulnModule`, `HttpClient`, `LlmClient`, `ReportWriter`.
+- [x] Os `record` e `enum` de `domain/model/` (assinaturas em `docs/contracts.md`).
+- [x] As interfaces `Detector`, `VulnModule`, `HttpClient`, `LlmClient`, `ReportWriter`.
 - **Checkpoint:** `mvn compile` passa.
 
 ## Fase 1 — Caminho HTTP ponta a ponta
@@ -76,7 +76,7 @@ seguir.
 
 ## Fase 6 — Experimento
 
-- [ ] `experiments/ground_truth.yaml` com casos positivos E negativos dos três tipos.
+- [x] `experiments/ground_truth.yaml` com casos positivos E negativos dos três tipos.
 - [x] `BenchmarkRunner`: lê o gabarito, roda cada caso com cada detector N vezes, compara
       com a verdade, acumula VP/FP/VN/FN, calcula métricas, grava os CSVs.
 - [x] Subcomando `benchmark` na CLI.

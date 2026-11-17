@@ -135,8 +135,8 @@ Para usar o detector LLM, instale o Ollama e baixe o modelo fixado neste README.
 Para criar uma nova versão, publique uma tag no formato `vX.Y.Z`:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 O workflow de Release executará os testes e anexará os dois arquivos à página da versão.
