@@ -35,9 +35,19 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   429."), `docs/experiment.md` (a espera entra no tempo do caso via API; rodadas antes da
   #79 sem retry), `docs/contracts.md` (já no passo 1, mais o comportamento).
 
-- [ ] **6. `mvn clean verify`.**
+- [x] **6. `mvn clean verify`.** 382 testes, 0 falhas, BUILD SUCCESS.
 
-- [ ] **7. Checkpoint empírico** (provedor real, lab real, `systemd-inhibit`):
+- [x] **7. Checkpoint empírico** (provedor real, lab real, `systemd-inhibit`):
   `benchmark --ground-truth experiments/ground_truth.yaml --runs 1 --reset --llm api --out
   experiments/results/2026-11-17-issue-79-retry`. Conferir `erros` no `summary.csv` e o tempo
   total, contra o checkpoint da #77 (10 `ERRO` por 429 em 16 casos, 5 min).
+
+  **Feito (2026-11-17, commit `3eef983`, 10 min):** `erros` caiu de **10 para 1** em 16
+  casos (o que sobrou: `js-auth-admin-config`, `429 após 4 tentativas`, honesto como `ERRO`).
+  O tempo total dobrou (5 → 10 min) e o tempo médio do `llm` foi para 37,7 s por caso: a
+  espera do retry entra no tempo medido, como registrado em `docs/experiment.md`.
+  Heurística F1 1.000. Ultra: F1 0.857, 0 FP. Os 2 FN: `dvwa-xss-dom-low` (o mesmo FN do
+  Qwen na #77: o prompt não explica o pseudo-header dos diálogos) e `js-bac-users-role`
+  (resposta normal do modelo em 5,6 s, sem erro). O negativo de DOM novo
+  (`dvwa-xss-dom-impossible`) deu **TN** também no Ultra.
+
