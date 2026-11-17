@@ -60,7 +60,7 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   `DockerComposeLabReset` com o `httpClient`. Coberto pelos testes existentes do `Container`
   (sem Docker: o reset só roda com `--reset`).
 
-- [ ] **8. CLI: `--reset`, aviso e erro (red → green).**
+- [x] **8. CLI: `--reset`, aviso e erro (red → green).**
   Testes em `BenchmarkCommandTest`: `resetRepassaParaOPedido`,
   `variasExecucoesSemResetAvisaNoStderr`, `umaExecucaoSemResetNaoAvisa`,
   `falhaNoResetSai2SemStackTrace`.

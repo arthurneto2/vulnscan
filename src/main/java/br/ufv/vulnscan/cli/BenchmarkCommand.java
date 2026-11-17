@@ -13,7 +13,8 @@ import java.util.concurrent.Callable;
 
 /**
  * CLI: subcomando {@code benchmark}. Monta o BenchmarkRequest e chama o BenchmarkService;
- * pedido inválido sai com 1 e falha de execução com 2, sem stack trace.
+ * pedido inválido sai com 1 e falha de execução (inclusive no reset do lab) com 2, sem stack
+ * trace. Com {@code --runs > 1} e sem {@code --reset}, avisa no stderr e segue.
  */
 @Command(name = "benchmark",
         description = "Roda o experimento (heurística vs LLM) sobre o gabarito e grava os CSVs.",
@@ -47,10 +48,19 @@ final class BenchmarkCommand implements Callable<Integer> {
             description = "Diretório dos CSVs. Padrão: experiments/results.")
     private Path out;
 
+    @Option(names = "--reset",
+            description = "Reseta o laboratório (docker compose down/up -d em lab/docker-compose.yml) antes de "
+                    + "cada execução e espera os alvos responderem. Exigido pelo protocolo com --runs > 1.")
+    private boolean reset;
+
     @Override
     public Integer call() {
+        if (runs > 1 && !reset) {
+            spec.commandLine().getErr().println("aviso: o laboratório não será resetado entre as execuções "
+                    + "(o protocolo exige o reset: o XSS armazenado suja o banco). Use --reset.");
+        }
         try {
-            Path summary = main.benchmarkService(llm).run(new BenchmarkRequest(groundTruth, runs, out));
+            Path summary = main.benchmarkService(llm).run(new BenchmarkRequest(groundTruth, runs, out, reset));
             spec.commandLine().getOut().printf("Benchmark concluído: %d execução(ões). Resumo: %s%n",
                     runs, summary);
             return Main.EXIT_OK;
