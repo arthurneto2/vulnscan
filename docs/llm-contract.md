@@ -108,7 +108,12 @@ O modelo deve devolver, **nesta ordem** (evidência e raciocínio antes do vered
 ```
 
 `evidence` é um trecho de até 120 caracteres copiado literalmente do corpo da resposta ou
-da linha `Browser dialogs` (#81), ou `""`. A ordem importa: com `vulnerable` primeiro, o modelo se comprometia com o veredito
+da linha `Browser dialogs` (#81), ou `""`. O texto da instrução depende de haver diálogos
+(#83). Sem a linha `Browser dialogs`, vale o texto de antes da #81: "copied
+character-for-character from the Response body above, or an empty string if nothing in the
+body supports a vulnerability". Só quando há diálogos o prompt cita "or from the Browser
+dialogs line". Citar a linha em todo prompt derrubou o Qwen 14B nos casos de API, onde ela
+nunca aparece: no A/B, os acertos dos positivos caíram de 9/9 para 2/9. A ordem importa: com `vulnerable` primeiro, o modelo se comprometia com o veredito
 antes de raciocinar e respondia "vulnerável" em 100% dos casos (issue #61), inclusive com
 justificativa contraditória ("401 Unauthorized" e `vulnerable: true`).
 
