@@ -24,11 +24,27 @@
 
 - [x] **4. `mvn clean verify`.** 389 testes, 0 falhas, BUILD SUCCESS.
 
-- [ ] **5. Checkpoint empírico** (lab real, `systemd-inhibit`, Ollama com
+- [x] **5. Checkpoint empírico** (lab real, `systemd-inhibit`, Ollama com
   `LLAMA_ARG_CACHE_RAM=0`):
   - 5 casos de API do Juice Shop, `--runs 3 --reset`;
   - 5 casos de navegador da #81, `--runs 2 --reset`;
   - comparar com o A/B (pré-#81 9/9 TP; pós-#81 2/9 TP) e com o checkpoint da #81.
+
+  **Feito em 2026-11-17, commit `571acc8`.** Pastas: `experiments/results/2026-11-17-issue-83-api/`
+  (5 min) e `…-83-browser/` (9 min). Nas duas rodadas, `erros` = 0.
+
+  | Caso (Qwen 14B) | pré-#81 | pós-#81 | #83 |
+  |---|---|---|---|
+  | `js-auth-admin-config` | TP 3/3 | TP 1/3 | **TP 3/3** |
+  | `js-idor-basket` | TP 3/3 | FN 3/3 | **TP 2/3** (1 FN) |
+  | `js-bac-users-role` | TP 3/3 | TP 1/3 | **TP 3/3** |
+  | negativos de API (2) | TN 6/6 | TN 6/6 | TN 6/6 |
+  | **F1 do LLM (API)** | 1.000 | 0.364 | **0.941** |
+  | `dvwa-xss-dom-low` | FN (antes da #81) | TP 2/2 | **TP 2/2** |
+  | outros 4 casos de navegador | — | TP/TN 8/8 | **TP/TN 8/8** |
+
+  - **API:** volta ao nível da referência #72, que também tinha 8/9, com 1 FN em `js-idor-basket`.
+  - **Navegador:** o ganho da #81 se mantém (F1 1.000, 0 FP).
 
 ## Desvios
 
