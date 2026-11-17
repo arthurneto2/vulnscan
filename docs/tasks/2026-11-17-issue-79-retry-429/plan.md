@@ -48,6 +48,7 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   espera do retry entra no tempo medido, como registrado em `docs/experiment.md`.
   Heurística F1 1.000. Ultra: F1 0.857, 0 FP. Os 2 FN: `dvwa-xss-dom-low` (o mesmo FN do
   Qwen na #77: o prompt não explica o pseudo-header dos diálogos) e `js-bac-users-role`
-  (resposta normal do modelo em 5,6 s, sem erro). O negativo de DOM novo
+  (resposta normal do modelo em 5,6 s, sem erro; TP 3/3 na referência da #72, então é
+  variância de uma execução só). O negativo de DOM novo
   (`dvwa-xss-dom-impossible`) deu **TN** também no Ultra.
 
