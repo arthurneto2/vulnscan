@@ -75,8 +75,19 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
 
 - [x] **10. `mvn clean verify`.** 360 testes, 0 falhas, BUILD SUCCESS.
 
-- [ ] **11. Checkpoint empírico** (lab real, `systemd-inhibit`, na tomada):
+- [x] **11. Checkpoint empírico** (lab real, `systemd-inhibit`, na tomada):
   `java -jar target/vulnscan.jar benchmark --ground-truth experiments/ground_truth.yaml
   --runs 2 --reset --llm api --out experiments/results/<data>-issue-60-reset`. Conferir:
   contêineres recriados 2 vezes, nenhum `ERRO` nos `run-*.csv`, guestbook do DVWA com os
   payloads de uma só execução ao final, métricas coerentes com a rodada de referência da #72.
+  **Feito (2026-11-17, commit `b84d53a`, ~7 min):** `docker compose down`/`up -d` rodou 2
+  vezes (2 × "Container vulnscan-dvwa Started" no log; contêineres recriados às 11:59Z, antes
+  da execução 2), 0 linhas `ERRO` nos dois `run-*.csv`, um único `summary.csv` com as 2
+  execuções. Heurística: F1 1.000 (igual à referência da #72). Ultra (API): F1 0.857, com 4 FN
+  espalhados (cada caso deu TP na outra execução e 3/3 na referência), sem FP. Dois desses FN
+  levaram 175 e 456 ms, contra 7 a 44 s de uma chamada normal: o detector deve ter recebido
+  erro rápido do provedor (veredito de baixa confiança), não uma resposta do modelo. Como o
+  CSV não guarda a justificativa, isso não dá para confirmar daqui. Os outros dois (8 s e
+  22 s) são variância do modelo. Nada aponta para o reset: a heurística deu TP nos mesmos
+  casos e nas mesmas execuções, então a evidência existia.
+
