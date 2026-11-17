@@ -76,4 +76,11 @@ OpenRouter…): troque `VULNSCAN_LLM_API_URL` e `VULNSCAN_LLM_API_MODEL`.
 - A CLI só traduz argumentos e delega para `app/ScanService`. Nenhuma lógica de scan vive
   aqui.
 - Código de saída: `0` se rodou, `1` em erro de uso, `2` em erro de execução.
+- **Módulo com falha no `scan`** (#58). Exemplo: sem `--module` contra o DVWA, o módulo `api`
+  falha porque o login do Juice Shop dá 404. Nesse caso o scan não para:
+  - os outros módulos rodam;
+  - o relatório é gravado com os achados e a seção de erros;
+  - o stderr lista `erro no módulo <Módulo>: <mensagem>` e
+    `Scan incompleto: N achado(s), M módulo(s) com erro. Relatório: <arquivo>`;
+  - a saída é `2`, para que um script não confunda o relatório parcial com um scan completo.
 - Alvo fora de `localhost` imprime aviso (o escopo é laboratório).

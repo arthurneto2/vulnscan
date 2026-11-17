@@ -61,6 +61,9 @@ public final class JsonReportWriter implements ReportWriter {
         root.put("findingCount", report.findings().size());
         ArrayNode findings = root.putArray("findings");
         report.findings().forEach(f -> findings.add(finding(f)));
+        root.put("errorCount", report.errors().size());
+        ArrayNode errors = root.putArray("errors");
+        report.errors().forEach(e -> errors.addObject().put("module", e.module()).put("message", e.message()));
         return root;
     }
 

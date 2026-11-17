@@ -1,6 +1,7 @@
 package br.ufv.vulnscan.domain;
 
 import br.ufv.vulnscan.domain.model.Finding;
+import br.ufv.vulnscan.domain.model.ModuleError;
 import br.ufv.vulnscan.domain.model.ScanReport;
 import br.ufv.vulnscan.domain.model.Severity;
 import br.ufv.vulnscan.domain.model.Target;
@@ -93,16 +94,41 @@ class ScannerTest {
         assertNull(b.receivedTarget, "módulo adicionado depois da construção não deveria rodar");
     }
 
+    /** #58: a falha de um módulo vira erro no relatório; os outros módulos seguem. */
     @Test
-    void excecaoDeModuloPropaga() {
-        IllegalStateException failure = new IllegalStateException("alvo fora do ar");
-        FakeModule b = new FakeModule(List.of());
-        Scanner scanner = new Scanner(List.of(new FakeModule(List.of(), failure), b));
+    void falhaDeModuloViraErroEOsOutrosSeguem() {
+        Finding a1 = finding(VulnType.SQL_INJECTION);
+        Finding c1 = finding(VulnType.XSS_REFLECTED);
+        FakeModule c = new FakeModule(List.of(c1));
+        Scanner scanner = new Scanner(List.of(new FakeModule(List.of(a1)),
+                new FakeModule(List.of(finding(VulnType.BROKEN_AUTH)), new IllegalStateException("404")), c));
 
-        IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> scanner.scan(TARGET));
+        ScanReport report = scanner.scan(TARGET);
 
-        assertSame(failure, thrown);
-        assertNull(b.receivedTarget, "módulo seguinte não deveria rodar");
+        assertEquals(List.of(a1, c1), report.findings());
+        assertEquals(List.of(new ModuleError("FakeModule", "404")), report.errors());
+        assertEquals(TARGET, c.receivedTarget);
+    }
+
+    @Test
+    void falhaSemMensagemUsaONomeDaExcecao() {
+        ScanReport report = new Scanner(List.of(new FakeModule(List.of(), new NullPointerException())))
+                .scan(TARGET);
+
+        assertEquals(List.of(new ModuleError("FakeModule", "NullPointerException")), report.errors());
+    }
+
+    @Test
+    void semFalhaNaoTemErros() {
+        assertTrue(new Scanner(List.of(new FakeModule(List.of()))).scan(TARGET).errors().isEmpty());
+    }
+
+    @Test
+    void errorDaJvmPropaga() {
+        OutOfMemoryError failure = new OutOfMemoryError("sem memória");
+        Scanner scanner = new Scanner(List.of(new ErrorModule(failure)));
+
+        assertSame(failure, assertThrows(OutOfMemoryError.class, () -> scanner.scan(TARGET)));
     }
 
     @Test
@@ -119,6 +145,19 @@ class ScannerTest {
 
     private static Finding finding(VulnType type) {
         return new Finding(type, Severity.HIGH, TARGET, null, null);
+    }
+
+    /** VulnModule que lança um Error da JVM. */
+    private record ErrorModule(Error failure) implements VulnModule {
+        @Override
+        public VulnType type() {
+            return VulnType.SQL_INJECTION;
+        }
+
+        @Override
+        public List<Finding> scan(Target target) {
+            throw failure;
+        }
     }
 
     /** VulnModule fake: devolve findings fixos e registra alvo e instante de execução. */

@@ -46,9 +46,17 @@ record Verdict(boolean vulnerable, double confidence, String rationale, String d
 record Finding(VulnType type, Severity severity, Target target,
                Evidence evidence, Verdict verdict) {}
 
-// Resultado de um scan completo de um alvo.
+// Falha de um módulo durante o scan (#58): nome simples da classe do módulo + mensagem
+// da exceção (o nome da exceção, se ela não tiver mensagem). Nenhum dos dois nulo.
+record ModuleError(String module, String message) {}
+
+// Resultado de um scan completo de um alvo. errors: módulos que falharam (#58), copiado e
+// imutável; vazio quando todos rodaram.
 record ScanReport(Target target, java.time.Instant startedAt,
-                  java.time.Instant finishedAt, java.util.List<Finding> findings) {}
+                  java.time.Instant finishedAt, java.util.List<Finding> findings,
+                  java.util.List<ModuleError> errors) {
+    ScanReport(Target, Instant, Instant, List<Finding> findings) { ... }  // errors = List.of()
+}
 ```
 
 ## Estratégias internas do domínio (não são portas)
@@ -196,7 +204,9 @@ public interface ReportWriter {
 ## Orquestração e composição
 
 ```java
-// domain/Scanner.java — orquestra os módulos pedidos sobre um alvo.
+// domain/Scanner.java — orquestra os módulos pedidos sobre um alvo. Uma RuntimeException de
+// um módulo vira ModuleError no relatório (os achados desse módulo são descartados) e o scan
+// segue com os outros (#58); Error da JVM propaga.
 public final class Scanner {
     public Scanner(java.util.List<VulnModule> modules) { ... }
     public ScanReport scan(Target target) { ... }

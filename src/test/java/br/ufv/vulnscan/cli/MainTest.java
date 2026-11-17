@@ -165,16 +165,32 @@ class MainTest {
         assertFalse(result.err().contains("\tat "), "stack trace no stderr:\n" + result.err());
     }
 
+    /** #58: módulo em erro → relatório parcial gravado, erros no stderr, saída 2. */
     @Test
-    void erroDeExecucaoSai2SemStackTrace() {
+    void scanComModuloEmErroSaiCom2EGravaORelatorio() {
         Map<String, VulnModule> modules = Map.of("sqli",
                 new FakeModule("sqli", new IllegalStateException("alvo fora do ar")));
 
         Result result = run(mainWith(modules), "scan", "--target", "http://localhost:3000");
 
         assertEquals(2, result.code());
-        assertTrue(result.err().contains("erro: alvo fora do ar"), result.err());
+        assertEquals(Path.of("report.md"), md.path, "o relatório parcial deveria ser gravado");
+        assertTrue(result.err().contains("erro no módulo FakeModule: alvo fora do ar"), result.err());
+        assertTrue(result.err().contains("Scan incompleto: 0 achado(s), 1 módulo(s) com erro. Relatório: report.md"),
+                result.err());
         assertFalse(result.err().contains("\tat "), "stack trace no stderr:\n" + result.err());
+    }
+
+    /** #58: mensagem com várias linhas (ex.: HTML do 404) sai numa linha só no stderr. */
+    @Test
+    void erroDeModuloComVariasLinhasSaiNumaLinha() {
+        Map<String, VulnModule> modules = Map.of("sqli",
+                new FakeModule("sqli", new IllegalStateException("<html>\n  <h1>Not Found</h1>\n</html>")));
+
+        Result result = run(mainWith(modules), "scan", "--target", "http://localhost:3000");
+
+        assertTrue(result.err().contains("erro no módulo FakeModule: <html> <h1>Not Found</h1> </html>\n"),
+                result.err());
     }
 
     @Test

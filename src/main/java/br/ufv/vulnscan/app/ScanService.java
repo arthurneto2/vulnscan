@@ -19,7 +19,9 @@ import java.util.function.Function;
  * Aplicação: caso de uso de scan chamado pela CLI. Valida o pedido, escolhe os módulos e o(s)
  * detector(es) de {@code --detector}, cria cada módulo com cada detector escolhido, roda o
  * Scanner e grava o relatório. Erro de uso vira {@link InvalidScanRequestException} (antes de
- * qualquer requisição); erro de execução propaga e nada é gravado.
+ * qualquer requisição). A falha de um módulo não derruba o scan (#58): o relatório é gravado
+ * com {@code ScanReport.errors()}, e a CLI decide o código de saída. Outro erro de execução,
+ * como falha ao gravar, propaga.
  */
 public final class ScanService {
 
