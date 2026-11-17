@@ -92,7 +92,8 @@ public final class LabCaseRunner implements CaseRunner {
         List<Verdict> unavailable = verdicts.stream().filter(LlmDetector::unavailable).toList();
         if (!unavailable.isEmpty()) {
             throw new IllegalStateException("LLM indisponível em " + unavailable.size() + " de "
-                    + verdicts.size() + " chamadas: " + unavailable.get(0).rationale());
+                    + verdicts.size() + " chamadas: "
+                    + unavailable.get(0).rationale().replaceFirst("^" + LlmDetector.UNAVAILABLE + ":\\s*", ""));
         }
     }
 

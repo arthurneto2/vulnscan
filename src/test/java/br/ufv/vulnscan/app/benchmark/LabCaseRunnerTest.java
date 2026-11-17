@@ -139,7 +139,7 @@ class LabCaseRunnerTest {
                 () -> runner.run(JS_SQLI, JUICE, "llm"));
 
         assertTrue(e.getMessage().contains("LLM indisponível em 2 de 2 chamadas"), e.getMessage());
-        assertTrue(e.getMessage().contains("429"), e.getMessage());
+        assertEquals("LLM indisponível em 2 de 2 chamadas: API de IA respondeu 429", e.getMessage());
     }
 
     @Test

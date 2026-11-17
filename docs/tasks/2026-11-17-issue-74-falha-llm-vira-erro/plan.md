@@ -42,10 +42,22 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   rápidos do checkpoint da #60), `docs/llm-contract.md` (linha "Erro do provedor…": no
   benchmark vira `ERRO`), README se citar as colunas.
 
-- [ ] **6. `mvn clean verify`.**
+- [x] **6. `mvn clean verify`.** 371 testes, 0 falhas, BUILD SUCCESS.
 
-- [ ] **7. Checkpoint empírico** (lab real, Ollama **parado**, sem tráfego externo):
+- [x] **7. Checkpoint empírico** (lab real, Ollama **parado**, sem tráfego externo):
   `java -jar target/vulnscan.jar benchmark --ground-truth experiments/ground_truth.yaml
   --runs 1 --reset --llm ollama --out experiments/results/2026-11-17-issue-74-ollama-parado`.
   Conferir: linhas `llm` sem achado → `ERRO` com `LLM indisponível` na coluna `erro`;
   `heuristic` com F1 1.000; `erros` no `TOTAL` do `llm` igual ao número de linhas `ERRO`.
+  **Feito (2026-11-17, commit `a65f442`):** lab resetado, porta 11434 fechada. Resultado: 14/14
+  linhas `llm` com `outcome=ERRO` e motivo `LLM indisponível em k de n chamadas: …
+  java.net.ConnectException` (k = n em todas: 5, 4 ou 1 chamadas por caso); `summary.csv` com
+  `erros` = 14 no `TOTAL` do `llm` e 3/4/2/2/3 por tipo; heurística 8 TP + 6 TN, F1 1.000,
+  `erros` = 0. Antes da #74, a mesma rodada teria dado ao `llm` 8 FN e 6 VN, com taxa de FP
+  de 0%.
+
+- [x] **8. Refactor achado no checkpoint.** O motivo repetia o prefixo ("LLM indisponível em
+  5 de 5 chamadas: LLM indisponível: …"). Agora a justificativa entra sem o prefixo; o teste
+  `llmIndisponivelSemAchadoViraErro` passou a conferir a mensagem inteira. Só muda o texto
+  (o checkpoint não foi refeito). `mvn clean verify`: 371 testes, 0 falhas.
+
