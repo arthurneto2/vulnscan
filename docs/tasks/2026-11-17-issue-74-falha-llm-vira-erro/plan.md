@@ -24,20 +24,20 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   de n chamadas: <justificativa da 1ª>")`.
   Verificar: `mvn test -Dtest=LabCaseRunnerTest`.
 
-- [ ] **3. Coluna `erro` no `run-<n>.csv` (red → green).**
+- [x] **3. Coluna `erro` no `run-<n>.csv` (red → green).**
   Teste: `BenchmarkRunnerTest#erroGravaOMotivoSemVirgula`.
   Green: cabeçalho `…,tempo_ms,erro`; linha normal com `erro` vazio; linha `ERRO` com a
   mensagem saneada (`,` → `;`, `\r`/`\n` → espaço, máx. 200 caracteres; mensagem nula → nome
   da exceção).
 
-- [ ] **4. Coluna `erros` no `summary.csv` (red → green).**
+- [x] **4. Coluna `erros` no `summary.csv` (red → green).**
   Teste: `BenchmarkRunnerTest#resumoContaErrosPorTipoETotal`.
   Green: contagem detector → (tipo|TOTAL) → erros; a linha `ERRO` também cria a matriz do
   tipo (zerada) para ele aparecer no resumo.
   Contrato (formato dos CSVs) em `docs/contracts.md`.
   Verificar: `mvn test -Dtest=BenchmarkRunnerTest`.
 
-- [ ] **5. Docs.** `docs/experiment.md` ("Saída": colunas `erro` e `erros`, o que é `ERRO`;
+- [x] **5. Docs.** `docs/experiment.md` ("Saída": colunas `erro` e `erros`, o que é `ERRO`;
   limitação: rodadas antes da #74 contavam indisponibilidade como FN/VN — inclusive os 2 FN
   rápidos do checkpoint da #60), `docs/llm-contract.md` (linha "Erro do provedor…": no
   benchmark vira `ERRO`), README se citar as colunas.

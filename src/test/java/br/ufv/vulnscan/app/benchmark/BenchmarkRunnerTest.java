@@ -176,6 +176,64 @@ class BenchmarkRunnerTest {
         }
     }
 
+    @Test
+    void erroGravaOMotivoSemVirgula() throws IOException {
+        CaseRunner comErro = (c, base, det) -> {
+            if (c.id().equals("sqli-pos")) {
+                throw new IllegalStateException("falhou, de novo\nlinha 2");
+            }
+            return new CaseResult(c.vulnerable(), 0.9, 1);
+        };
+
+        new BenchmarkRunner(GT, comErro, List.of("heuristic"), 1).run(out);
+
+        List<String> linhas = Files.readAllLines(out.resolve("run-1.csv"));
+        assertTrue(linhas.get(0).endsWith(",tempo_ms,erro"), linhas.get(0));
+        assertEquals("1,sqli-pos,SQL_INJECTION,heuristic,true,,,ERRO,,falhou; de novo linha 2", linhas.get(1));
+        assertTrue(linhas.get(2).endsWith(",TN,1,"), linhas.get(2));
+        assertEquals(10, linhas.get(2).split(",", -1).length, linhas.get(2));
+    }
+
+    @Test
+    void motivoDoErroLongoECortado() throws IOException {
+        CaseRunner comErro = (c, base, det) -> {
+            throw new IllegalStateException("x".repeat(500));
+        };
+
+        new BenchmarkRunner(GT, comErro, List.of("heuristic"), 1).run(out);
+
+        String linha = Files.readAllLines(out.resolve("run-1.csv")).get(1);
+        assertEquals(200, linha.substring(linha.lastIndexOf(',') + 1).length(), linha);
+    }
+
+    @Test
+    void resumoContaErrosPorTipoETotal() throws IOException {
+        // o llm falha em todo caso de XSS; a heurística acerta tudo
+        CaseRunner runner = (c, base, det) -> {
+            if (det.equals("llm") && c.type() == VulnType.XSS_REFLECTED) {
+                throw new IllegalStateException("LLM indisponível em 1 de 1 chamadas");
+            }
+            return new CaseResult(c.vulnerable(), 0.9, 1);
+        };
+
+        new BenchmarkRunner(GT, runner, List.of("heuristic", "llm"), 1).run(out);
+
+        List<String> resumo = Files.readAllLines(out.resolve("summary.csv"));
+        assertTrue(resumo.get(0).endsWith(",tempo_medio_ms,erros"), resumo.get(0));
+        assertEquals("0", erros(resumo, "heuristic", "TOTAL"));
+        assertEquals("0", erros(resumo, "llm", "SQL_INJECTION"));
+        assertEquals("2", erros(resumo, "llm", "TOTAL"));
+        // tipo só com ERRO aparece com a matriz zerada
+        assertTrue(resumo.contains("llm,XSS_REFLECTED,0,0,0,0,0.0000,0.0000,0.0000,0.0000,1.0000,2"),
+                String.join("\n", resumo));
+    }
+
+    private static String erros(List<String> resumo, String detector, String tipo) {
+        String linha = resumo.stream().filter(l -> l.startsWith(detector + "," + tipo + ","))
+                .findFirst().orElseThrow(() -> new AssertionError("sem " + detector + "/" + tipo + ": " + resumo));
+        return linha.substring(linha.lastIndexOf(',') + 1);
+    }
+
     /** Runner perfeito: prevê exatamente o gabarito. */
     private static CaseRunner perfectRunner() {
         return (c, base, det) -> new CaseResult(c.vulnerable(), c.vulnerable() ? 0.9 : 0.1, 2);
