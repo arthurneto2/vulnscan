@@ -5,6 +5,7 @@ import br.ufv.vulnscan.domain.model.Finding;
 import br.ufv.vulnscan.domain.model.HttpRequest;
 import br.ufv.vulnscan.domain.model.HttpResponse;
 import br.ufv.vulnscan.domain.model.Payload;
+import br.ufv.vulnscan.domain.model.ModuleError;
 import br.ufv.vulnscan.domain.model.ScanReport;
 import br.ufv.vulnscan.domain.model.Severity;
 import br.ufv.vulnscan.domain.model.Target;
@@ -54,6 +55,20 @@ class HtmlReportWriterTest {
         assertTrue(html.contains("juice-shop"), html);
         assertTrue(html.contains("3500"), "duração em ms");
         assertTrue(html.contains("Nenhum achado."), html);
+        assertFalse(html.contains("<h2>Erros</h2>"), html);
+    }
+
+    /** #58: seção de erros, com a mensagem escapada. */
+    @Test
+    void errosDeModuloTemSecaoEscapada() throws IOException {
+        String html = write(new ScanReport(TARGET, STARTED, FINISHED, List.of(),
+                List.of(new ModuleError("ApiAuthModule", "<h1>Not Found</h1>"))));
+
+        assertTrue(html.contains("<strong>Módulos com erro:</strong> 1"), html);
+        assertTrue(html.contains("<h2>Erros</h2>"), html);
+        assertTrue(html.contains("ApiAuthModule"), html);
+        assertTrue(html.contains("&lt;h1&gt;Not Found&lt;/h1&gt;"), html);
+        assertFalse(html.contains("<h1>Not Found</h1>"), html);
     }
 
     @Test

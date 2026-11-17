@@ -5,6 +5,7 @@ import br.ufv.vulnscan.domain.model.Finding;
 import br.ufv.vulnscan.domain.model.HttpRequest;
 import br.ufv.vulnscan.domain.model.HttpResponse;
 import br.ufv.vulnscan.domain.model.Payload;
+import br.ufv.vulnscan.domain.model.ModuleError;
 import br.ufv.vulnscan.domain.model.ScanReport;
 import br.ufv.vulnscan.domain.model.Verdict;
 import br.ufv.vulnscan.port.ReportWriter;
@@ -57,7 +58,20 @@ public final class MarkdownReportWriter implements ReportWriter {
         md.append("- **Fim:** ").append(report.finishedAt()).append('\n');
         md.append("- **Duração:** ")
                 .append(Duration.between(report.startedAt(), report.finishedAt()).toMillis()).append(" ms\n");
-        md.append("- **Achados:** ").append(report.findings().size()).append("\n\n");
+        md.append("- **Achados:** ").append(report.findings().size()).append('\n');
+        if (!report.errors().isEmpty()) {
+            md.append("- **Módulos com erro:** ").append(report.errors().size()).append('\n');
+        }
+        md.append('\n');
+        if (!report.errors().isEmpty()) {
+            md.append("## Erros\n\n");
+            md.append("Estes módulos falharam; os achados deles não estão no relatório (scan incompleto).\n\n");
+            for (ModuleError error : report.errors()) {
+                md.append("- **").append(error.module()).append("**: ")
+                        .append(error.message().replaceAll("\\s+", " ").strip()).append('\n');
+            }
+            md.append('\n');
+        }
         md.append("## Achados\n\n");
         if (report.findings().isEmpty()) {
             md.append("Nenhum achado.\n");

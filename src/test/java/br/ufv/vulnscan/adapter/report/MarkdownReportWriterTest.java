@@ -5,6 +5,7 @@ import br.ufv.vulnscan.domain.model.Finding;
 import br.ufv.vulnscan.domain.model.HttpRequest;
 import br.ufv.vulnscan.domain.model.HttpResponse;
 import br.ufv.vulnscan.domain.model.Payload;
+import br.ufv.vulnscan.domain.model.ModuleError;
 import br.ufv.vulnscan.domain.model.ScanReport;
 import br.ufv.vulnscan.domain.model.Severity;
 import br.ufv.vulnscan.domain.model.Target;
@@ -161,6 +162,25 @@ class MarkdownReportWriterTest {
         String md = render(report(List.of(finding)));
 
         assertContains(md, "````text\n```<script>alert(1)</script>\n````\n");
+    }
+
+    /** #58: seção de erros só quando algum módulo falhou. */
+    @Test
+    void errosDeModuloTemSecaoPropria() throws IOException {
+        String md = render(new ScanReport(TARGET, STARTED, FINISHED, List.of(),
+                List.of(new ModuleError("ApiAuthModule", "404 em /rest/user/login"))));
+
+        assertContains(md, "- **Módulos com erro:** 1");
+        assertContains(md, "## Erros");
+        assertContains(md, "**ApiAuthModule**: 404 em /rest/user/login");
+    }
+
+    @Test
+    void semErrosNaoTemSecaoDeErros() throws IOException {
+        String md = render(report(List.of()));
+
+        assertFalse(md.contains("## Erros"), md);
+        assertFalse(md.contains("Módulos com erro"), md);
     }
 
     @Test

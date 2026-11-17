@@ -5,6 +5,7 @@ import br.ufv.vulnscan.domain.model.Finding;
 import br.ufv.vulnscan.domain.model.HttpRequest;
 import br.ufv.vulnscan.domain.model.HttpResponse;
 import br.ufv.vulnscan.domain.model.Payload;
+import br.ufv.vulnscan.domain.model.ModuleError;
 import br.ufv.vulnscan.domain.model.ScanReport;
 import br.ufv.vulnscan.domain.model.Verdict;
 import br.ufv.vulnscan.port.ReportWriter;
@@ -67,7 +68,20 @@ public final class HtmlReportWriter implements ReportWriter {
         html.append("<li><strong>Fim:</strong> ").append(esc(report.finishedAt().toString())).append("</li>\n");
         html.append("<li><strong>Duração:</strong> ")
                 .append(Duration.between(report.startedAt(), report.finishedAt()).toMillis()).append(" ms</li>\n");
-        html.append("<li><strong>Achados:</strong> ").append(report.findings().size()).append("</li>\n</ul>\n");
+        html.append("<li><strong>Achados:</strong> ").append(report.findings().size()).append("</li>\n");
+        if (!report.errors().isEmpty()) {
+            html.append("<li><strong>Módulos com erro:</strong> ").append(report.errors().size()).append("</li>\n");
+        }
+        html.append("</ul>\n");
+        if (!report.errors().isEmpty()) {
+            html.append("<h2>Erros</h2>\n");
+            html.append("<p>Estes módulos falharam; os achados deles não estão no relatório (scan incompleto).</p>\n<ul>\n");
+            for (ModuleError error : report.errors()) {
+                html.append("<li><strong>").append(esc(error.module())).append("</strong>: <code>")
+                        .append(esc(error.message())).append("</code></li>\n");
+            }
+            html.append("</ul>\n");
+        }
         html.append("<h2>Achados</h2>\n");
         if (report.findings().isEmpty()) {
             html.append("<p>Nenhum achado.</p>\n");

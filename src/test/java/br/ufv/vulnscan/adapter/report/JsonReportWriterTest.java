@@ -5,6 +5,7 @@ import br.ufv.vulnscan.domain.model.Finding;
 import br.ufv.vulnscan.domain.model.HttpRequest;
 import br.ufv.vulnscan.domain.model.HttpResponse;
 import br.ufv.vulnscan.domain.model.Payload;
+import br.ufv.vulnscan.domain.model.ModuleError;
 import br.ufv.vulnscan.domain.model.ScanReport;
 import br.ufv.vulnscan.domain.model.Severity;
 import br.ufv.vulnscan.domain.model.Target;
@@ -59,6 +60,20 @@ class JsonReportWriterTest {
         assertEquals(0, json.path("findingCount").asInt());
         assertTrue(json.path("findings").isArray());
         assertEquals(0, json.path("findings").size());
+        assertEquals(0, json.path("errorCount").asInt(-1));
+        assertTrue(json.path("errors").isArray());
+        assertEquals(0, json.path("errors").size());
+    }
+
+    /** #58: módulos que falharam aparecem no JSON. */
+    @Test
+    void errosDeModuloNoJson() throws IOException {
+        JsonNode json = write(new ScanReport(TARGET, STARTED, FINISHED, List.of(),
+                List.of(new ModuleError("ApiAuthModule", "404 em /rest/user/login"))));
+
+        assertEquals(1, json.path("errorCount").asInt());
+        assertEquals("ApiAuthModule", json.path("errors").path(0).path("module").asText());
+        assertEquals("404 em /rest/user/login", json.path("errors").path(0).path("message").asText());
     }
 
     @Test
