@@ -81,6 +81,9 @@ public interface VulnModule {
 record InjectionPoint(String path, String parameter) {
     // baseUrl.resolve(path) + ?/& + parameter=<value URL-encoded UTF-8>
     public java.net.URI url(java.net.URI baseUrl, String value) { ... }
+    // Igual, com a codificação de fragmento de um navegador (só controles, não-ASCII e  "#%<>[\]^`{|});
+    // usada pelo DomXssModule (#77): "/", "'", "()" e "=" ficam crus.
+    public java.net.URI browserUrl(java.net.URI baseUrl, String value) { ... }
 }
 
 // Parser puro do arquivo de payloads (id<TAB>valor<TAB>descrição; # e vazias ignoradas).

@@ -6,7 +6,7 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
 
 ## Passos
 
-- [ ] **1. `InjectionPoint.browserUrl` (red → green).**
+- [x] **1. `InjectionPoint.browserUrl` (red → green).**
   Testes em `InjectionPointTest`: `browserUrlCodificaComoONavegador`,
   `browserUrlCodificaEspacoAspasENaoAscii`, `urlContinuaComoFormulario`.
   Red: stub que delega ao `url` → falha na asserção (`%2F`, `+`).
@@ -14,7 +14,7 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   maiúsculo). Contrato em `docs/contracts.md`.
   Verificar: `mvn test -Dtest=InjectionPointTest`.
 
-- [ ] **2. `DomXssModule` usa `browserUrl` (red → green).**
+- [x] **2. `DomXssModule` usa `browserUrl` (red → green).**
   Ajustar `DomXssModuleTest#abreUrlComFragmentoEMarcador` para a URL nova (red: o módulo
   ainda usa `url`). Green: trocar a chamada. Javadoc do módulo cita a codificação.
   Verificar: `mvn test -Dtest=DomXssModuleTest`.

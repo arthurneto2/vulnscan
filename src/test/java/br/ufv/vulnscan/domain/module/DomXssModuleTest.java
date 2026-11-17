@@ -48,8 +48,9 @@ class DomXssModuleTest {
     void abreUrlComFragmentoEMarcador() {
         module(List.of(IMG), List.of(SEARCH)).scan(TARGET);
 
+        // codificação de navegador (#77): espaço → %20; "=", "'" e "()" crus
         assertEquals(List.of(URI.create("http://localhost:3000/#/search?q="
-                + "%3Cimg+src%3Dx+onerror%3Dalert%28%27m1%27%29%3E")), browser.opened);
+                + "%3Cimg%20src=x%20onerror=alert('m1')%3E")), browser.opened);
     }
 
     @Test
