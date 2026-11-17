@@ -360,6 +360,66 @@ class LlmDetectorTest {
         return new Evidence(payload, request, new HttpResponse(200, Map.of(), "<pre>erro</pre>", 5));
     }
 
+    // --- diálogos do navegador no prompt e no grounding (issue #81) ---
+
+    @Test
+    void promptMostraDialogosQuandoHouve() {
+        CapturingClient cap = new CapturingClient();
+
+        new LlmDetector(cap).judge(xssNoNavegador("<option value=\"%3Cscript%3E\">", "vsx1a2b3c4d"));
+
+        assertTrue(cap.prompt.contains("Browser dialogs: vsx1a2b3c4d"), cap.prompt);
+        assertTrue(cap.prompt.contains("actually fired"), cap.prompt);
+    }
+
+    @Test
+    void promptSemDialogosNaoTemALinha() {
+        assertFalse(promptFor(VulnType.XSS_REFLECTED).contains("Browser dialogs:"));
+    }
+
+    @Test
+    void criterioDeXssFalaDoDialogoComMarcador() {
+        String xss = promptFor(VulnType.XSS_REFLECTED);
+        String sqli = promptFor(VulnType.SQL_INJECTION);
+
+        assertTrue(xss.contains("dialog") && xss.contains("marker"), xss);
+        assertTrue(xss.contains("or from the Browser dialogs line"), "evidence pode vir dos diálogos: " + xss);
+        assertFalse(sqli.contains("marker"), sqli);
+    }
+
+    @Test
+    void evidenciaCitadaDoDialogoPassaNoGrounding() {
+        LlmDetector detector = detector("{\"evidence\":\"vsx1a2b3c4d\",\"rationale\":\"o alert disparou\","
+                + "\"vulnerable\":true,\"confidence\":0.9}");
+
+        Verdict v = detector.judge(xssNoNavegador("<option value=\"%3Cscript%3E\">", "vsx1a2b3c4d"));
+
+        assertTrue(v.vulnerable(), v.rationale());
+        assertEquals(0.9, v.confidence());
+    }
+
+    @Test
+    void evidenciaForaDoCorpoEDosDialogosContinuaRebaixada() {
+        LlmDetector detector = detector("{\"evidence\":\"outra coisa\",\"rationale\":\"r\","
+                + "\"vulnerable\":true,\"confidence\":0.9}");
+
+        Verdict v = detector.judge(xssNoNavegador("<option value=\"%3Cscript%3E\">", "vsx1a2b3c4d"));
+
+        assertFalse(v.vulnerable());
+        assertEquals(0.2, v.confidence());
+        assertTrue(v.rationale().contains("sem evidência"), v.rationale());
+    }
+
+    /** Resposta sintética do navegador: DOM no corpo e, se houver, os diálogos no pseudo-header. */
+    private static Evidence xssNoNavegador(String dom, String dialogs) {
+        Payload payload = new Payload("xss-script", VulnType.XSS_REFLECTED,
+                "<script>alert('vsx1a2b3c4d')</script>", "tag script");
+        HttpRequest request = new HttpRequest("GET", URI.create("http://localhost:8080/x#?d=1"), Map.of(), null);
+        Map<String, String> headers = dialogs == null ? Map.of("content-type", "text/html")
+                : Map.of("content-type", "text/html", HttpResponse.DIALOGS_HEADER, dialogs);
+        return new Evidence(payload, request, new HttpResponse(200, headers, dom, 5));
+    }
+
     // --- janela do corpo centrada no payload (issue #72) ---
 
     @Test

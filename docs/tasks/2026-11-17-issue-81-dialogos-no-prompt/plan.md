@@ -1,29 +1,29 @@
 # Plano — Diálogos do navegador explicados no prompt e aceitos no grounding (issue #81)
 
-Spec: `spec.md` nesta pasta. Branch: `issue-81-dialogos-no-prompt` (a partir de `main` em
-`b97d202`; o PR #80, da #79, ainda não estava mergeado e não toca no `LlmDetector`). Cada
+Spec: `spec.md` nesta pasta. Branch: `issue-81-dialogos-no-prompt` (rebaseada no `main` em
+`350455e`, com o PR #80 da #79). Cada
 passo: teste primeiro (red pelo motivo esperado), código mínimo (green), refactor.
 
 ## Passos
 
-- [ ] **1. Linha `Browser dialogs` no prompt (red → green).**
+- [x] **1. Linha `Browser dialogs` no prompt (red → green).**
   Testes: `promptMostraDialogosQuandoHouve`, `promptSemDialogosNaoTemALinha`.
   Red: a linha não existe (asserção). Green: a linha só quando há
   `HttpResponse.DIALOGS_HEADER`, com a explicação.
   Verificar: `mvn test -Dtest=LlmDetectorTest`.
 
-- [ ] **2. Critério de XSS e instrução do `evidence` (red → green).**
+- [x] **2. Critério de XSS e instrução do `evidence` (red → green).**
   Teste: `criterioDeXssFalaDoDialogoComMarcador`.
   Green: frase do diálogo com marcador no critério de XSS; `evidence` "from the Response body
   or the Browser dialogs line".
 
-- [ ] **3. Grounding aceita os diálogos (red → green).**
+- [x] **3. Grounding aceita os diálogos (red → green).**
   Testes: `evidenciaCitadaDoDialogoPassaNoGrounding` (red: hoje rebaixa),
   `evidenciaForaDoCorpoEDosDialogosContinuaRebaixada` (regressão).
   Green: a citação vale se estiver no corpo normalizado ou nos diálogos normalizados.
   Refactor: Javadoc da classe (grounding).
 
-- [ ] **4. Docs.** `docs/llm-contract.md` (prompt, `evidence` e grounding),
+- [x] **4. Docs.** `docs/llm-contract.md` (prompt, `evidence` e grounding),
   `docs/experiment.md` (limitação com o antes e o depois), `docs/contracts.md` se preciso.
 
 - [ ] **5. `mvn clean verify`.**
