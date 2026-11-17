@@ -116,7 +116,8 @@ ollama pull qwen2.5:14b-instruct
   devolve `new Verdict(false, 0.0, "resposta do LLM não parseável", "llm")`. Timeout
   (`Config.llmTimeout`, 120 s, vale para Ollama e API; o alvo usa 30 s) também vira veredito de baixa confiança, não
   erro fatal.
-- Trunque o corpo da resposta HTTP (~4 KB) antes de pôr no prompt.
+- Trunque o corpo da resposta HTTP (~4 KB) antes de pôr no prompt: em corpo grande, a janela
+  onde o payload aparece, não o começo (`docs/llm-contract.md`, "Trecho do corpo").
 - Modelo e versão fixados em `app/Config.java` (e no README) — é o que torna o experimento
   reproduzível.
 - **Modelo local: mínimo de 14B parâmetros** (hoje `qwen2.5:14b-instruct`). Não use nem

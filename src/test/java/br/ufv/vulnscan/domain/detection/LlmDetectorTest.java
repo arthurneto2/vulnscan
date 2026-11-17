@@ -120,6 +120,7 @@ class LlmDetectorTest {
         assertTrue(prompt.contains("http://localhost:8080/vuln?id=1'"), "url");
         assertTrue(prompt.contains("[truncado]"), "marca de truncamento");
         assertTrue(prompt.length() < corpo.length(), "corpo não foi mandado inteiro");
+        assertFalse(prompt.contains("caracteres omitidos"), "sem âncora: começo do corpo, como antes");
     }
 
     @Test
@@ -332,6 +333,64 @@ class LlmDetectorTest {
         Payload payload = new Payload("sqli-quote", VulnType.SQL_INJECTION, "1'", "aspas");
         HttpRequest request = new HttpRequest("GET", URI.create("http://localhost:8080/vuln?id=1"), Map.of(), null);
         return new Evidence(payload, request, new HttpResponse(200, Map.of(), "<pre>erro</pre>", 5));
+    }
+
+    // --- janela do corpo centrada no payload (issue #72) ---
+
+    @Test
+    void corpoGrandeMostraJanelaDoPayload() {
+        String value = "<img src=x onerror=alert('vsx1a2b3c4d')>";
+        String body = "A".repeat(10_000) + "PERTO" + value + "B".repeat(10_000);
+
+        String prompt = promptWithBody(VulnType.XSS_REFLECTED, value, body);
+
+        assertTrue(prompt.contains("PERTO" + value), "trecho do payload no corpo");
+        assertTrue(prompt.contains("caracteres omitidos"), "marca de corte no começo");
+        assertTrue(prompt.length() < 10_000, "parte do corpo continua limitada: " + prompt.length());
+    }
+
+    @Test
+    void corpoGrandeComPayloadEscapadoAchaPeloMarcador() {
+        String value = "<script>alert('vsx9f8e7d6c')</script>";
+        String escaped = "&lt;script&gt;alert('vsx9f8e7d6c')&lt;/script&gt;";
+        String body = "A".repeat(10_000) + escaped + "B".repeat(10_000);
+
+        String prompt = promptWithBody(VulnType.XSS_REFLECTED, value, body);
+
+        assertTrue(prompt.contains(escaped), "trecho escapado no prompt");
+    }
+
+    @Test
+    void palavraComumDoPayloadNaoDeslocaAJanela() {
+        String value = "/rest/admin/application-configuration";
+        String body = "{\"config\":" + "X".repeat(8_000) + "SSL configurations" + "Y".repeat(8_000);
+
+        String prompt = promptWithBody(VulnType.BROKEN_AUTH, value, body);
+
+        assertTrue(prompt.contains("{\"config\":"), "começo do corpo (a evidência) no prompt");
+        assertFalse(prompt.contains("caracteres omitidos"), "janela não ancora em palavra comum");
+    }
+
+    @Test
+    void payloadPertoDoFimUsaJanelaInteiraAteOFim() {
+        String value = "<svg onload=alert('vsx55aa66bb')>";
+        String body = "A".repeat(10_000) + value + "FIM";
+
+        String prompt = promptWithBody(VulnType.XSS_REFLECTED, value, body);
+
+        assertTrue(prompt.contains("[… " + (body.length() - 4096) + " caracteres omitidos …]"),
+                "janela de 4096 que termina no fim do corpo");
+        int fim = prompt.indexOf(value + "FIM");
+        assertTrue(fim >= 0, "trecho final no prompt");
+        assertFalse(prompt.substring(fim).contains("[truncado]"), "nada cortado depois do fim");
+    }
+
+    private static String promptWithBody(VulnType type, String payloadValue, String body) {
+        CapturingClient cap = new CapturingClient();
+        Payload payload = new Payload("p", type, payloadValue, "teste");
+        HttpRequest request = new HttpRequest("GET", URI.create("http://localhost:3000/x"), Map.of(), null);
+        new LlmDetector(cap).judge(new Evidence(payload, request, new HttpResponse(200, Map.of(), body, 5)));
+        return cap.prompt;
     }
 
     private static final class CapturingClient implements LlmClient {

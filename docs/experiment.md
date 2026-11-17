@@ -67,6 +67,12 @@ conhecida.
   acrescentada depois de ver o resultado do benchmark (issue #61), nos mesmos 14 casos. Não
   há conjunto de teste separado, então os números do LLM depois dessa mudança podem estar
   otimistas.
+  O mesmo vale para a janela do corpo (issue #72): a exigência de letra e dígito no token
+  que ancora a janela foi acrescentada depois de uma rodada em que o Ultra errou
+  `js-auth-admin-config`, também nesses 14 casos.
+- **Sem negativo de XSS de DOM no gabarito.** `js-xss-dom-search` é o único caso de DOM e é
+  positivo. O FP do LLM nesse caminho (DOM renderizado, janela ao redor do payload) não é
+  medido.
 
 - **Negativos do DVWA antes da #68.** No nível `impossible`, o DVWA exige um token
   anti-CSRF novo a cada submissão e, sem ele, responde `302` antes de executar a consulta.
@@ -139,7 +145,7 @@ A heurística deu 24/0/18/0 em todas as execuções, como antes.
   sob o mesmo id. Para o relatório, a referência continua sendo o Qwen 14B local, e a API é
   a alternativa para quem não roda o 14B.
 
-## Rodada após as #59 e #68 (resultado de referência)
+## Rodada após as #59 e #68
 
 Medição de 2026-11-16, commit `73febb7`: 14 casos × 3 execuções por modelo, lab resetado
 antes de cada execução (à mão, enquanto a #60 está aberta), banco do DVWA criado pelo próprio
@@ -164,8 +170,37 @@ A heurística deu o mesmo resultado nas duas rodadas (Ollama e API).
 - **Todos os erros do LLM são FN.** `js-xss-dom-search` é FN nas 6 execuções, nos dois
   modelos: é o caso julgado sobre o DOM renderizado pelo navegador. `js-idor-basket` é FN
   em 1 de 3 no Qwen, a única variação entre execuções.
-- Esta tabela substitui as das seções da #61 e da #65 como resultado de referência. Elas
-  ficam como histórico da escolha dos modelos.
+- Esta tabela substituiu as das seções da #61 e da #65. Hoje o resultado de referência é o
+  da seção seguinte (#72); esta fica como histórico.
+
+## Rodada após a #72 (resultado de referência)
+
+A #72 mudou o trecho do corpo que vai para o prompt: em corpo maior que 4 KB, a janela onde
+o payload aparece, não o começo (`docs/llm-contract.md`, "Trecho do corpo"). Medição de
+2026-11-16, commit base `98efca0` + o diff da #72 (sha1 do diff `f53c643ef8`), mesmo protocolo
+da seção anterior: 14 casos × 3 execuções por modelo, reset do lab antes de cada uma, Ollama
+com `LLAMA_ARG_CACHE_RAM=0`, na tomada e sem suspensão. Nenhum timeout (81/81 chamadas ao
+Ollama com `200`; nenhum `429` ou erro na API).
+
+| Detector | VP | FP | VN | FN | Precisão | Recall | F1 | Taxa FP | Mediana | Máx. | F1 por execução |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| heuristic | 24 | 0 | 18 | 0 | 1.000 | 1.000 | 1.000 | 0% | < 0,1 s | 8 s | 1.000 / 1.000 / 1.000 |
+| llm — `qwen2.5:14b-instruct` (Ollama) | 22 | 0 | 18 | 2 | 1.000 | 0.917 | 0.957 | 0% | 18,3 s | 99 s | 1.000 / 0.933 / 0.933 |
+| llm — `nemotron-3-ultra-550b-a55b` (API) | 24 | 0 | 18 | 0 | 1.000 | 1.000 | **1.000** | 0% | 10,8 s | 68 s | 1.000 / 1.000 / 1.000 |
+
+- **`js-xss-dom-search` passou de FN em 6/6 para TP em 6/6.** O DOM renderizado do Juice
+  Shop tem ~206 mil caracteres e o payload fica por volta da posição 195 mil; antes, o
+  prompt só levava os primeiros 4 KB e o modelo respondia "foi escapado" com confiança 1.0.
+- **Ultra: F1 1.000**, igual à heurística, nas 3 execuções. **Qwen: F1 0.957**; o único
+  erro é `js-idor-basket` (FN em 2/3), o mesmo caso instável das rodadas anteriores.
+- **FP do LLM continua 0%** nos dois modelos, com os negativos `impossible` do DVWA
+  julgados pela página real (#68) e agora com o payload visível no prompt.
+- **Rodada descartada:** a 1ª versão da janela ancorava em qualquer token do payload. No
+  `js-auth-admin-config`, o payload é o path `/rest/admin/application-configuration`, e o
+  token `configuration` ancorou numa descrição de produto (posição 8.354 de um JSON de 36
+  mil caracteres): o começo do JSON, que era a evidência, saiu do prompt, e o Ultra deu FN
+  em 3/3. A âncora passou a exigir letra e dígito (o marcador `vsx…`), e a rodada foi
+  refeita. Ver a limitação "Ajuste informado pelo gabarito".
 
 ## Saída
 

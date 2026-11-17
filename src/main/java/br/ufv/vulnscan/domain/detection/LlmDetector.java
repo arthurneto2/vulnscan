@@ -10,8 +10,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.MatchResult;
+import java.util.regex.Pattern;
 
 /**
  * Domínio: implementação de IA de {@link Detector}. Monta um prompt a partir da {@link Evidence},
@@ -37,6 +40,12 @@ public final class LlmDetector implements Detector {
 
     private static final String NAME = "llm";
     private static final int MAX_BODY_CHARS = 4096;
+    /**
+     * Token do payload que serve de âncora no corpo: 6+ letras e dígitos, com pelo menos um de
+     * cada (ex.: o marcador {@code vsx9f8e7d6c}). Exigir dígito evita ancorar em palavra comum
+     * do payload (ex.: {@code configuration} de um path), que aparece em qualquer lugar.
+     */
+    private static final Pattern TOKEN = Pattern.compile("(?=[A-Za-z0-9]*[0-9])(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{6,}");
     /** Trecho curto: citar um JSON longo faz o modelo entrar em repetição (Ollama aborta). */
     private static final int MAX_EVIDENCE_CHARS = 120;
     private static final String UNPARSEABLE = "resposta do LLM não parseável";
@@ -210,9 +219,7 @@ public final class LlmDetector implements Detector {
         HttpRequest request = evidence.request();
         HttpResponse response = evidence.response();
         String body = Objects.requireNonNullElse(response.body(), "");
-        String bodyForPrompt = body.length() > MAX_BODY_CHARS
-                ? body.substring(0, MAX_BODY_CHARS) + "… [truncado]"
-                : body;
+        String bodyForPrompt = bodyExcerpt(body, evidence.payload().value());
         return """
                 You are a careful web security analyst reviewing the result of ONE automated test.
                 Most tests are expected to be NOT vulnerable: answering "vulnerable": false is common \
@@ -244,6 +251,43 @@ public final class LlmDetector implements Detector {
                 evidence.payload().value(), evidence.payload().description(), request.method(), request.url(), request.headers(),
                 response.status(), response.elapsedMillis(), response.headers(), bodyForPrompt,
                 MAX_EVIDENCE_CHARS);
+    }
+
+    /**
+     * Trecho do corpo que vai para o prompt (no máximo {@link #MAX_BODY_CHARS} caracteres).
+     * Corpo pequeno vai inteiro. Corpo grande: uma janela que começa metade antes da primeira
+     * ocorrência do payload (ajustada para não passar do fim do corpo); se ele não aparece literal (escapado, reescrito pelo navegador),
+     * a âncora é o seu token mais longo com letra e dígito encontrado (o marcador). Sem âncora, o começo
+     * do corpo. Regra genérica, igual para todo tipo: escolhe o que mostrar, não julga.
+     */
+    private static String bodyExcerpt(String body, String payload) {
+        if (body.length() <= MAX_BODY_CHARS) {
+            return body;
+        }
+        int anchor = anchor(body, payload);
+        if (anchor < 0) {
+            return body.substring(0, MAX_BODY_CHARS) + "… [truncado]";
+        }
+        int start = Math.max(0, Math.min(anchor - MAX_BODY_CHARS / 2, body.length() - MAX_BODY_CHARS));
+        int end = Math.min(body.length(), start + MAX_BODY_CHARS);
+        return (start > 0 ? "[… " + start + " caracteres omitidos …]\n" : "")
+                + body.substring(start, end)
+                + (end < body.length() ? "… [truncado]" : "");
+    }
+
+    /** Posição do payload no corpo: literal; senão, o {@link #TOKEN} mais longo achado; senão -1. */
+    private static int anchor(String body, String payload) {
+        int literal = body.indexOf(payload);
+        if (literal >= 0) {
+            return literal;
+        }
+        return TOKEN.matcher(payload).results()
+                .map(MatchResult::group)
+                .sorted(Comparator.comparingInt(String::length).reversed())
+                .mapToInt(body::indexOf)
+                .filter(i -> i >= 0)
+                .findFirst()
+                .orElse(-1);
     }
 
     /**
