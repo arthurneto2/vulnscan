@@ -36,6 +36,15 @@ conhecida.
 - Alvo resetado entre execuções (o XSS armazenado suja o banco). Depois do reset, o banco
   do DVWA não existe; desde a #59 o próprio benchmark o cria (`setup.php`) antes do login e
   aborta com erro se não conseguir. As rodadas antes disso criaram o banco à mão.
+- Ollama com o cache de prompts em RAM desligado (`LLAMA_ARG_CACHE_RAM=0 ollama serve`). Na
+  máquina do experimento (14 GB de RAM, RTX 4050 de 6 GB, 23 de 49 camadas do 14B na GPU), o
+  cache cresceu até 8 GB, a RAM e o swap lotaram, e a geração caiu de 5,4 para 0,7 tokens/s:
+  todas as chamadas seguintes passaram dos 120 s e viraram veredito de timeout. Essa rodada
+  (2026-11-16) foi descartada. O cache só reaproveita o começo idêntico dos prompts (~10–12%
+  aqui), não muda as respostas e economiza menos de 0,5 s por chamada.
+- Máquina sem suspender durante as rodadas (na tomada e com
+  `systemd-inhibit --what=sleep:idle:handle-lid-switch`). Uma suspensão no meio deixa a
+  execução parada por horas e o tempo medido sem sentido.
 - Semente/ordem dos casos estável.
 - O relatório cita a variância entre as N execuções como limitação honesta.
 
@@ -63,10 +72,11 @@ conhecida.
   anti-CSRF novo a cada submissão e, sem ele, responde `302` antes de executar a consulta.
   Até a #68, o benchmark não mandava o token. Então os três negativos do DVWA
   (`dvwa-sqli-impossible`, `dvwa-xss-reflected-impossible`, `dvwa-xss-stored-impossible`)
-  foram julgados pelo redirect, não pela página segura, nas rodadas das seções abaixo (#61 e
-  #65). O FP do LLM nesses casos pode ter saído subestimado; as rodadas precisam ser
-  refeitas. Desde a #68, o benchmark busca o token antes de cada submissão. O GET extra
-  entra no tempo médio dos casos `impossible`, igual para os dois detectores.
+  foram julgados pelo redirect, não pela página segura, nas rodadas das seções da #61 e da
+  #65. Desde a #68, o benchmark busca o token antes de cada submissão. O GET extra entra no
+  tempo médio dos casos `impossible`, igual para os dois detectores. As rodadas foram
+  refeitas com a página real (seção "Rodada após as #59 e #68"): o FP do LLM continuou 0%,
+  então o resultado antigo se confirmou.
 
 ## Escolha do modelo (issue #61)
 
@@ -128,6 +138,34 @@ A heurística deu 24/0/18/0 em todas as execuções, como antes.
 - O modelo hospedado não tem digest fixo como o do Ollama: o provedor pode atualizar o modelo
   sob o mesmo id. Para o relatório, a referência continua sendo o Qwen 14B local, e a API é
   a alternativa para quem não roda o 14B.
+
+## Rodada após as #59 e #68 (resultado de referência)
+
+Medição de 2026-11-16, commit `73febb7`: 14 casos × 3 execuções por modelo, lab resetado
+antes de cada execução (à mão, enquanto a #60 está aberta), banco do DVWA criado pelo próprio
+benchmark (#59) e negativos `impossible` do DVWA julgados pela página real, com o token
+anti-CSRF (#68). Ollama com `LLAMA_ARG_CACHE_RAM=0`, na tomada, sem suspensão; nenhum
+timeout (90/90 chamadas ao Ollama com `200`; nenhum `429` ou erro na API). Tempo por caso.
+
+| Detector | VP | FP | VN | FN | Precisão | Recall | F1 | Taxa FP | Mediana | Máx. | F1 por execução |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| heuristic | 24 | 0 | 18 | 0 | 1.000 | 1.000 | 1.000 | 0% | < 0,1 s | 8 s | 1.000 / 1.000 / 1.000 |
+| llm — `qwen2.5:14b-instruct` (Ollama) | 20 | 0 | 18 | 4 | 1.000 | 0.833 | 0.909 | 0% | 19,7 s | 87 s | 0.857 / 0.933 / 0.933 |
+| llm — `nemotron-3-ultra-550b-a55b` (API) | 21 | 0 | 18 | 3 | 1.000 | 0.875 | **0.933** | 0% | 9,4 s | 111 s | 0.933 / 0.933 / 0.933 |
+
+A heurística deu o mesmo resultado nas duas rodadas (Ollama e API).
+
+- **O FP do LLM continua 0%** com a página real. Os 3 negativos `impossible` do DVWA
+  (consulta parametrizada; saída escapada `&lt;script&gt;`) deram VN nas 6 execuções, nos
+  dois modelos. O 0% das rodadas da #61 e da #65, quando esses casos eram julgados pelo
+  redirect, se confirmou.
+- Comparado com essas rodadas: o Qwen foi de F1 0.884 (19/0/18/5) para 0.909 (20/0/18/4),
+  um FN a menos, dentro da variação entre execuções; o Ultra repetiu 0.933 (21/0/18/3).
+- **Todos os erros do LLM são FN.** `js-xss-dom-search` é FN nas 6 execuções, nos dois
+  modelos: é o caso julgado sobre o DOM renderizado pelo navegador. `js-idor-basket` é FN
+  em 1 de 3 no Qwen, a única variação entre execuções.
+- Esta tabela substitui as das seções da #61 e da #65 como resultado de referência. Elas
+  ficam como histórico da escolha dos modelos.
 
 ## Saída
 

@@ -29,6 +29,16 @@ os números estão em `docs/experiment.md` ("Escolha do modelo"). O 14B roda num
 com parte das camadas na CPU (~20 s por veredito); por isso o Ollama tem timeout próprio de
 120 s.
 
+Com pouca RAM (ex.: 16 GB ou menos), suba o Ollama com o cache de prompts em RAM desligado:
+
+```bash
+LLAMA_ARG_CACHE_RAM=0 ollama serve
+```
+
+Sem isso, o cache cresce até ~8 GB durante o benchmark, a máquina entra em swap e as chamadas
+passam dos 120 s (detalhes em `docs/experiment.md`, "Reprodutibilidade"). O cache não muda
+as respostas; desligá-lo custa menos de 0,5 s por chamada.
+
 ### IA via API (sem modelo local)
 
 Para quem não tem máquina para o 14B, o detector `llm` pode usar um modelo hospedado:
