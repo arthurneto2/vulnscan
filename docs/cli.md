@@ -30,7 +30,7 @@ vulnscan scan --target http://localhost:3000 --module xss --detector both --form
 ## `benchmark` — roda o experimento (heurística vs LLM)
 
 ```
-vulnscan benchmark --ground-truth <arquivo> [--runs <n>] [--llm ollama|api] [--out <dir>]
+vulnscan benchmark --ground-truth <arquivo> [--runs <n>] [--llm ollama|api] [--reset] [--out <dir>]
 ```
 
 | Opção            | Default            | Descrição                                         |
@@ -38,10 +38,18 @@ vulnscan benchmark --ground-truth <arquivo> [--runs <n>] [--llm ollama|api] [--o
 | `--ground-truth` | (obrigatório)      | caminho do `ground_truth.yaml`                    |
 | `--runs`         | `3`                | nº de execuções (para medir variância do LLM)     |
 | `--llm`          | `ollama`           | backend do detector `llm` (igual ao do `scan`)    |
+| `--reset`        | desligado          | reseta o lab antes de cada execução (issue #60)   |
 | `--out`          | `experiments/results` | diretório dos CSVs de resultado                |
 
 Saída: um CSV por execução com uma linha por (caso × detector), e um resumo com a matriz
 de confusão e as métricas por tipo de falha. Ver `docs/experiment.md`.
+
+`--reset` roda, antes de cada execução (inclusive a 1ª), `docker compose -f
+lab/docker-compose.yml down` e `up -d` (caminho relativo: rode da raiz do repositório),
+espera cada `base_url` do gabarito responder (qualquer status HTTP; prazo de 180 s) e
+descarta a sessão do DVWA, que o login recria junto com o banco. Comando que falha ou alvo
+que não sobe no prazo encerra com código `2`. Sem `--reset` e com `--runs` > 1, o benchmark
+avisa no stderr que o lab não será resetado, como o protocolo exige, e segue.
 
 ## IA via API (`--llm api`, issue #65)
 

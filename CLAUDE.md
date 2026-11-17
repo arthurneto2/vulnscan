@@ -79,8 +79,8 @@ docker compose -f lab/docker-compose.yml down && docker compose -f lab/docker-co
 # Rodar um scan (depois de compilar)
 java -jar target/vulnscan.jar scan --target http://localhost:3000 --module xss
 
-# Rodar o experimento (heurística vs LLM contra o gabarito)
-java -jar target/vulnscan.jar benchmark --ground-truth experiments/ground_truth.yaml
+# Rodar o experimento (heurística vs LLM contra o gabarito); --reset reseta o lab antes de cada execução
+java -jar target/vulnscan.jar benchmark --ground-truth experiments/ground_truth.yaml --reset
 
 # Pré-requisito da camada de IA: Ollama rodando com o modelo fixado
 ollama pull qwen2.5:14b-instruct

@@ -68,12 +68,12 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   `IllegalStateException` do reset já cai no `catch (RuntimeException)` → saída 2.
   Verificar: `mvn test -Dtest=BenchmarkCommandTest`.
 
-- [ ] **9. Docs.** `docs/cli.md` (linha da opção e aviso), `docs/experiment.md`
+- [x] **9. Docs.** `docs/cli.md` (linha da opção e aviso), `docs/experiment.md`
   (procedimento passo 1 e "Alvo resetado entre execuções" citam `--reset`; rodadas antigas
   foram com reset manual), README (comando do experimento com `--reset`), memória
   `ambiente-rodadas-llm` (o reset deixa de ser manual).
 
-- [ ] **10. `mvn clean verify`.** Todos os testes e a regra de dependência verdes.
+- [x] **10. `mvn clean verify`.** 360 testes, 0 falhas, BUILD SUCCESS.
 
 - [ ] **11. Checkpoint empírico** (lab real, `systemd-inhibit`, na tomada):
   `java -jar target/vulnscan.jar benchmark --ground-truth experiments/ground_truth.yaml

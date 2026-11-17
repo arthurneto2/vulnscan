@@ -6,7 +6,8 @@ conhecida.
 
 ## Procedimento
 
-1. Subir o laboratório no estado de fábrica (`docker compose up`).
+1. Subir o laboratório no estado de fábrica (`docker compose up`). Com `benchmark --reset`
+   (issue #60), o próprio benchmark faz isso antes de cada execução.
 2. Para cada caso do `ground_truth.yaml`: o módulo correspondente monta e envia a
    requisição, captura a `Evidence`, e cada `Detector` emite um `Verdict`.
 3. Comparar `Verdict.vulnerable` com o campo `vulnerable` do gabarito. Cada par
@@ -33,7 +34,10 @@ conhecida.
 - Modelo e versão fixados (`app/Config.java`), temperatura baixa.
 - Mesma versão das imagens Docker do laboratório — fixadas por digest (`@sha256:`) em
   `lab/docker-compose.yml`, não por `:latest`.
-- Alvo resetado entre execuções (o XSS armazenado suja o banco). Depois do reset, o banco
+- Alvo resetado entre execuções (o XSS armazenado suja o banco). Desde a #60, use
+  `benchmark --runs N --reset`: o benchmark faz `docker compose down`/`up -d` e espera os
+  alvos antes de cada execução, e as N saem num único `summary.csv`. As rodadas anteriores
+  (até a #72) fizeram N × `--runs 1` com o reset à mão entre elas. Depois do reset, o banco
   do DVWA não existe; desde a #59 o próprio benchmark o cria (`setup.php`) antes do login e
   aborta com erro se não conseguir. As rodadas antes disso criaram o banco à mão.
 - Ollama com o cache de prompts em RAM desligado (`LLAMA_ARG_CACHE_RAM=0 ollama serve`). Na
