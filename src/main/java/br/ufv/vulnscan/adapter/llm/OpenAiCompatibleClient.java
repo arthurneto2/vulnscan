@@ -10,8 +10,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * Adaptador: porta {@link LlmClient} via API compatível com OpenAI
@@ -21,8 +24,13 @@ import java.util.Objects;
  * temperatura do {@code OllamaClient} ({@value #TEMPERATURE}); o teto de tokens gerados
  * ({@value #MAX_TOKENS}) é maior porque inclui o raciocínio dos modelos que o expõem.
  *
- * <p>Falha de transporte/timeout propaga como {@link UncheckedIOException}; status fora de 2xx,
- * corpo que não é JSON ou sem conteúdo → {@link IllegalStateException}. <b>A chave nunca aparece
+ * <p><b>Retry (#79):</b> em {@code 429} ou {@code 5xx}, até {@value #MAX_ATTEMPTS} chamadas no
+ * total, esperando o {@code Retry-After} do provedor (segundos, teto de 60 s) ou 2, 4, 8 s. Outros
+ * {@code 4xx}, corpo inválido e falha de transporte não repetem.
+ *
+ * <p>Falha de transporte/timeout propaga como {@link UncheckedIOException}; status fora de 2xx
+ * (depois das tentativas, quando couber), corpo que não é JSON ou sem conteúdo →
+ * {@link IllegalStateException}. <b>A chave nunca aparece
  * em mensagem de erro</b>, nem quando o provedor a ecoa no corpo.
  */
 public final class OpenAiCompatibleClient implements LlmClient {
@@ -33,27 +41,48 @@ public final class OpenAiCompatibleClient implements LlmClient {
      *  {@code reasoning_content} antes do {@code content}; com 256 a resposta vinha {@code null}. */
     private static final int MAX_TOKENS = 8192;
     private static final int MAX_ERROR_CHARS = 200;
+    /** 1 chamada + até 3 novas tentativas em 429/5xx (#79). */
+    private static final int MAX_ATTEMPTS = 4;
+    private static final Duration FIRST_BACKOFF = Duration.ofSeconds(2);
+    /** Teto para o {@code Retry-After} do provedor. */
+    private static final Duration MAX_RETRY_AFTER = Duration.ofSeconds(60);
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http;
     private final URI baseUrl;
     private final String model;
     private final String apiKey;
+    private final Consumer<Duration> sleeper;
 
     public OpenAiCompatibleClient(HttpClient http, URI baseUrl, String model, String apiKey) {
+        this(http, baseUrl, model, apiKey, OpenAiCompatibleClient::sleep);
+    }
+
+    /** @param sleeper espera entre tentativas (injetável para teste; o padrão é {@code Thread.sleep}) */
+    public OpenAiCompatibleClient(HttpClient http, URI baseUrl, String model, String apiKey,
+                                  Consumer<Duration> sleeper) {
         this.http = Objects.requireNonNull(http, "http");
         this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl");
         this.model = Objects.requireNonNull(model, "model");
         this.apiKey = Objects.requireNonNull(apiKey, "apiKey");
+        this.sleeper = Objects.requireNonNull(sleeper, "sleeper");
     }
 
     @Override
     public String complete(String prompt) {
-        HttpResponse response = http.send(new HttpRequest("POST", completionsUri(),
+        HttpRequest request = new HttpRequest("POST", completionsUri(),
                 Map.of("Content-Type", "application/json", "Authorization", "Bearer " + apiKey),
-                requestBody(prompt)));
+                requestBody(prompt));
+        HttpResponse response = http.send(request);
+        Duration backoff = FIRST_BACKOFF;
+        for (int attempt = 1; retryable(response.status()) && attempt < MAX_ATTEMPTS; attempt++) {
+            sleeper.accept(retryAfter(response).orElse(backoff));
+            backoff = backoff.multipliedBy(2);
+            response = http.send(request);
+        }
         if (response.status() < 200 || response.status() >= 300) {
-            throw new IllegalStateException("API de IA respondeu " + response.status() + ": "
+            String attempts = retryable(response.status()) ? " após " + MAX_ATTEMPTS + " tentativas" : "";
+            throw new IllegalStateException("API de IA respondeu " + response.status() + attempts + ": "
                     + snippet(response.body()));
         }
         JsonNode content = parse(response.body()).path("choices").path(0).path("message").path("content");
@@ -62,6 +91,33 @@ public final class OpenAiCompatibleClient implements LlmClient {
                     + snippet(response.body()));
         }
         return content.asText();
+    }
+
+    /**
+     * {@code Retry-After} em segundos inteiros, limitado a {@link #MAX_RETRY_AFTER}; ausente ou
+     * em outro formato (data HTTP) → vazio, e vale a espera crescente.
+     */
+    private static Optional<Duration> retryAfter(HttpResponse response) {
+        String value = response.headers().get("retry-after");
+        if (value == null || !value.strip().matches("\\d{1,9}")) {
+            return Optional.empty();
+        }
+        Duration wait = Duration.ofSeconds(Long.parseLong(value.strip()));
+        return Optional.of(wait.compareTo(MAX_RETRY_AFTER) > 0 ? MAX_RETRY_AFTER : wait);
+    }
+
+    /** Erro temporário do provedor: limite de taxa ou falha do servidor. */
+    private static boolean retryable(int status) {
+        return status == 429 || (status >= 500 && status <= 599);
+    }
+
+    private static void sleep(Duration duration) {
+        try {
+            Thread.sleep(duration);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("espera do retry da API de IA interrompida", e);
+        }
     }
 
     /** Acrescenta o path à URL base sem perder o {@code /v1} ({@code URI.resolve} o descartaria). */

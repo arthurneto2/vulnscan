@@ -17,6 +17,13 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -40,6 +47,12 @@ class OpenAiCompatibleClientTest {
     private volatile String requestAuthorization;
     private volatile String requestContentType;
     private volatile int status = 200;
+    /** Status das próximas respostas, em ordem; vazio → usa {@code status}. */
+    private final Deque<Integer> statusScript = new ArrayDeque<>();
+    private volatile String retryAfter;
+    private final AtomicInteger calls = new AtomicInteger();
+    /** Esperas pedidas pelo cliente (o sleeper dos testes não espera de verdade). */
+    private final List<Duration> waits = Collections.synchronizedList(new ArrayList<>());
     private volatile String responseJson =
             "{\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\\"vulnerable\\\":false}\"}}]}";
 
@@ -94,6 +107,77 @@ class OpenAiCompatibleClientTest {
     }
 
     @Test
+    void erro429DepoisSucessoDevolveOConteudo() {
+        statusScript.add(429);
+
+        assertEquals("{\"vulnerable\":false}", client().complete("x"));
+        assertEquals(2, calls.get());
+        assertEquals(List.of(Duration.ofSeconds(2)), waits);
+    }
+
+    @Test
+    void respeitaRetryAfterEmSegundos() {
+        statusScript.add(429);
+        retryAfter = "7";
+
+        client().complete("x");
+
+        assertEquals(List.of(Duration.ofSeconds(7)), waits);
+    }
+
+    @Test
+    void retryAfterAcimaDoTetoEhLimitado() {
+        statusScript.add(429);
+        retryAfter = "3600";
+
+        client().complete("x");
+
+        assertEquals(List.of(Duration.ofSeconds(60)), waits);
+    }
+
+    @Test
+    void retryAfterEmDataUsaEsperaPadrao() {
+        statusScript.add(429);
+        retryAfter = "Wed, 21 Oct 2026 07:28:00 GMT";
+
+        client().complete("x");
+
+        assertEquals(List.of(Duration.ofSeconds(2)), waits);
+    }
+
+    @Test
+    void erro5xxEsgotaAsTentativasELancaComAContagem() {
+        status = 503;
+        responseJson = "{\"error\":\"overloaded " + KEY + "\"}";
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> client().complete("x"));
+
+        assertEquals(4, calls.get());
+        assertEquals(List.of(Duration.ofSeconds(2), Duration.ofSeconds(4), Duration.ofSeconds(8)), waits);
+        assertTrue(e.getMessage().contains("503") && e.getMessage().contains("após 4 tentativas"), e.getMessage());
+        assertFalse(e.getMessage().contains(KEY), "a chave vazou: " + e.getMessage());
+    }
+
+    @Test
+    void erro4xxNaoRepete() {
+        status = 401;
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> client().complete("x"));
+
+        assertEquals(1, calls.get());
+        assertTrue(waits.isEmpty(), waits::toString);
+        assertTrue(e.getMessage().contains("401"), e.getMessage());
+    }
+
+    @Test
+    void respostaSemChoicesNaoRepete() {
+        responseJson = "{\"object\":\"chat.completion\",\"choices\":[]}";
+
+        assertThrows(IllegalStateException.class, () -> client().complete("x"));
+        assertEquals(1, calls.get());
+    }
+
+    @Test
     void respostaSemChoicesLanca() {
         responseJson = "{\"object\":\"chat.completion\",\"choices\":[]}";
 
@@ -117,7 +201,7 @@ class OpenAiCompatibleClientTest {
     }
 
     private OpenAiCompatibleClient client() {
-        return new OpenAiCompatibleClient(new JdkHttpClient(), baseUrl(), MODEL, KEY);
+        return new OpenAiCompatibleClient(new JdkHttpClient(), baseUrl(), MODEL, KEY, waits::add);
     }
 
     /** Como a da NVIDIA ({@code https://integrate.api.nvidia.com/v1}): a URL base termina em /v1. */
@@ -126,13 +210,19 @@ class OpenAiCompatibleClientTest {
     }
 
     private void handle(HttpExchange exchange) throws IOException {
+        calls.incrementAndGet();
         requestMethod = exchange.getRequestMethod();
         requestPath = exchange.getRequestURI().getPath();
         requestAuthorization = exchange.getRequestHeaders().getFirst("Authorization");
         requestContentType = exchange.getRequestHeaders().getFirst("Content-Type");
         requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         byte[] bytes = responseJson.getBytes(StandardCharsets.UTF_8);
-        exchange.sendResponseHeaders(status, bytes.length);
+        Integer scripted = statusScript.poll();
+        int code = scripted == null ? status : scripted;
+        if (retryAfter != null && code != 200) {
+            exchange.getResponseHeaders().add("Retry-After", retryAfter);
+        }
+        exchange.sendResponseHeaders(code, bytes.length);
         try (OutputStream out = exchange.getResponseBody()) {
             out.write(bytes);
         }

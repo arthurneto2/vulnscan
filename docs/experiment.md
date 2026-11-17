@@ -100,6 +100,11 @@ conhecida.
   #60, dois FN do Ultra levaram 175 e 456 ms (uma chamada normal leva de 7 a 44 s),
   provavelmente erro da API. Desde a #74, esses casos saem como `ERRO`, com o motivo, e são
   contados na coluna `erros` do resumo.
+- **Retry da API só desde a #79.** O plano gratuito da API devolve `429` sob carga: no
+  checkpoint da #77, 10 de 16 casos saíram `ERRO`. Desde a #79, o cliente da API tenta de
+  novo em `429`/`5xx` (até 4 chamadas, com espera). **A espera entra no tempo medido do
+  caso**, então o tempo médio do LLM via API inclui tempo de fila do provedor, não só de
+  inferência; comparar tempos entre Ollama e API com essa ressalva. O Ollama não tem retry.
 
 ## Escolha do modelo (issue #61)
 

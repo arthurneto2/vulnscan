@@ -176,7 +176,10 @@ public interface HttpClient {
 //   "response" cru; status != 2xx ou sem "response" → IllegalStateException)
 //   → adapter: OpenAiCompatibleClient (#65; POST {baseUrl}/chat/completions com Bearer,
 //   {model,messages:[{role:user,content}],temperature,max_tokens,stream:false}; devolve
-//   choices[0].message.content; erro → IllegalStateException sem a chave na mensagem)
+//   choices[0].message.content; erro → IllegalStateException sem a chave na mensagem.
+//   #79: 429/5xx → até 3 novas tentativas, esperando Retry-After (s, teto 60 s) ou 2/4/8 s;
+//   outros 4xx, corpo inválido e falha de transporte não repetem. Construtores:
+//   (HttpClient, URI baseUrl, String model, String apiKey) e o mesmo + Consumer<Duration> sleeper)
 // Recebe um prompt pronto e devolve o texto cru do modelo (espera-se JSON; ver
 // docs/llm-contract.md). Quem monta o prompt e faz o parse é o LlmDetector.
 public interface LlmClient {
