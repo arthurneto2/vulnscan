@@ -23,7 +23,7 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   Testes: `erro4xxNaoRepete`, `respostaSemChoicesNaoRepete`. Devem passar de primeira; se não
   passarem, corrigir.
 
-- [ ] **4. `Retry-After` (red → green).**
+- [x] **4. `Retry-After` (red → green).**
   Testes: `respeitaRetryAfterEmSegundos`, `retryAfterAcimaDoTetoEhLimitado`,
   `retryAfterEmDataUsaEsperaPadrao`.
   Green: lê `retry-after` (o `JdkHttpClient` devolve os nomes em minúsculas), inteiro ≥ 0,
@@ -31,7 +31,7 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   Refactor: Javadoc da classe (regra de retry), constantes nomeadas.
   Verificar: `mvn test -Dtest=OpenAiCompatibleClientTest`.
 
-- [ ] **5. Docs.** `docs/llm-contract.md` (regra de retry no lugar de "Não há retry em
+- [x] **5. Docs.** `docs/llm-contract.md` (regra de retry no lugar de "Não há retry em
   429."), `docs/experiment.md` (a espera entra no tempo do caso via API; rodadas antes da
   #79 sem retry), `docs/contracts.md` (já no passo 1, mais o comportamento).
 

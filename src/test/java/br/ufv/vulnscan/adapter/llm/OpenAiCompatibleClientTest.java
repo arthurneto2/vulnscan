@@ -116,6 +116,36 @@ class OpenAiCompatibleClientTest {
     }
 
     @Test
+    void respeitaRetryAfterEmSegundos() {
+        statusScript.add(429);
+        retryAfter = "7";
+
+        client().complete("x");
+
+        assertEquals(List.of(Duration.ofSeconds(7)), waits);
+    }
+
+    @Test
+    void retryAfterAcimaDoTetoEhLimitado() {
+        statusScript.add(429);
+        retryAfter = "3600";
+
+        client().complete("x");
+
+        assertEquals(List.of(Duration.ofSeconds(60)), waits);
+    }
+
+    @Test
+    void retryAfterEmDataUsaEsperaPadrao() {
+        statusScript.add(429);
+        retryAfter = "Wed, 21 Oct 2026 07:28:00 GMT";
+
+        client().complete("x");
+
+        assertEquals(List.of(Duration.ofSeconds(2)), waits);
+    }
+
+    @Test
     void erro5xxEsgotaAsTentativasELancaComAContagem() {
         status = 503;
         responseJson = "{\"error\":\"overloaded " + KEY + "\"}";

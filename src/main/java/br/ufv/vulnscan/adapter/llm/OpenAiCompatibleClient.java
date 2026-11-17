@@ -13,6 +13,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -23,8 +24,13 @@ import java.util.function.Consumer;
  * temperatura do {@code OllamaClient} ({@value #TEMPERATURE}); o teto de tokens gerados
  * ({@value #MAX_TOKENS}) é maior porque inclui o raciocínio dos modelos que o expõem.
  *
- * <p>Falha de transporte/timeout propaga como {@link UncheckedIOException}; status fora de 2xx,
- * corpo que não é JSON ou sem conteúdo → {@link IllegalStateException}. <b>A chave nunca aparece
+ * <p><b>Retry (#79):</b> em {@code 429} ou {@code 5xx}, até {@value #MAX_ATTEMPTS} chamadas no
+ * total, esperando o {@code Retry-After} do provedor (segundos, teto de 60 s) ou 2, 4, 8 s. Outros
+ * {@code 4xx}, corpo inválido e falha de transporte não repetem.
+ *
+ * <p>Falha de transporte/timeout propaga como {@link UncheckedIOException}; status fora de 2xx
+ * (depois das tentativas, quando couber), corpo que não é JSON ou sem conteúdo →
+ * {@link IllegalStateException}. <b>A chave nunca aparece
  * em mensagem de erro</b>, nem quando o provedor a ecoa no corpo.
  */
 public final class OpenAiCompatibleClient implements LlmClient {
@@ -38,6 +44,8 @@ public final class OpenAiCompatibleClient implements LlmClient {
     /** 1 chamada + até 3 novas tentativas em 429/5xx (#79). */
     private static final int MAX_ATTEMPTS = 4;
     private static final Duration FIRST_BACKOFF = Duration.ofSeconds(2);
+    /** Teto para o {@code Retry-After} do provedor. */
+    private static final Duration MAX_RETRY_AFTER = Duration.ofSeconds(60);
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http;
@@ -68,7 +76,7 @@ public final class OpenAiCompatibleClient implements LlmClient {
         HttpResponse response = http.send(request);
         Duration backoff = FIRST_BACKOFF;
         for (int attempt = 1; retryable(response.status()) && attempt < MAX_ATTEMPTS; attempt++) {
-            sleeper.accept(backoff);
+            sleeper.accept(retryAfter(response).orElse(backoff));
             backoff = backoff.multipliedBy(2);
             response = http.send(request);
         }
@@ -83,6 +91,19 @@ public final class OpenAiCompatibleClient implements LlmClient {
                     + snippet(response.body()));
         }
         return content.asText();
+    }
+
+    /**
+     * {@code Retry-After} em segundos inteiros, limitado a {@link #MAX_RETRY_AFTER}; ausente ou
+     * em outro formato (data HTTP) → vazio, e vale a espera crescente.
+     */
+    private static Optional<Duration> retryAfter(HttpResponse response) {
+        String value = response.headers().get("retry-after");
+        if (value == null || !value.strip().matches("\\d{1,9}")) {
+            return Optional.empty();
+        }
+        Duration wait = Duration.ofSeconds(Long.parseLong(value.strip()));
+        return Optional.of(wait.compareTo(MAX_RETRY_AFTER) > 0 ? MAX_RETRY_AFTER : wait);
     }
 
     /** Erro temporário do provedor: limite de taxa ou falha do servidor. */
