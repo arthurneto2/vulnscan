@@ -59,10 +59,31 @@ O prompt é em inglês (os modelos testados são mais estáveis em inglês) e te
    não aplica regra por tipo ao veredito.
 3. **Evidência completa:** payload, descrição do payload (ex.: "probe de NONE (requisição
    sem token)"), método + URL, headers da requisição, status, tempo de resposta (ms),
-   headers da resposta e corpo truncado a 4 KB.
+   headers da resposta e até 4 KB do corpo (ver "Trecho do corpo" abaixo).
 4. **Formato da saída**, com os campos na ordem abaixo.
 
 Não mande a resposta HTTP inteira sem truncar — modelos pequenos têm janela limitada.
+
+### Trecho do corpo (issue #72)
+
+Corpo com até 4.096 caracteres vai inteiro. Corpo maior vai como uma **janela de 4.096
+caracteres onde o payload aparece**, não como o começo do corpo:
+
+1. âncora = primeira ocorrência literal do payload no corpo;
+2. se não houver (payload escapado, ou reescrito pelo navegador no DOM renderizado): a
+   primeira ocorrência do token alfanumérico mais longo do payload com 6+ caracteres e
+   **pelo menos uma letra e um dígito**, na prática o marcador `vsx…`. Sem a exigência do
+   dígito, palavras comuns do payload ancoravam em qualquer lugar: o path
+   `/rest/admin/application-configuration` ancorou em "SSL configurations" de uma descrição
+   de produto e tirou do prompt o começo do JSON, que era a evidência;
+3. a janela começa 2.048 caracteres antes da âncora, ajustada para não sair do corpo, com
+   `[… N caracteres omitidos …]` antes e `… [truncado]` depois quando há corte;
+4. sem âncora: os primeiros 4.096 caracteres e `… [truncado]`.
+
+Motivo: no XSS de DOM do Juice Shop, o DOM renderizado tem ~206 mil caracteres e o payload
+fica por volta da posição 195 mil; com o começo do corpo, o modelo julgava sem ver a
+evidência (FN em 6/6 execuções). A regra é genérica, igual para todo tipo: escolhe o que
+mostrar, não julga. O grounding continua checando a citação contra o corpo inteiro.
 
 ## Saída esperada (JSON)
 
