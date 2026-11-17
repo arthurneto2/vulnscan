@@ -271,12 +271,22 @@ enum Outcome { TP, FP, TN, FN }   // Outcome.of(esperado, previsto)
 // Costura de execução de um caso; LabCaseRunner liga caso→módulo (um ponto só) e roda.
 interface CaseRunner {
     CaseResult run(GroundTruth.Case c, java.net.URI baseUrl, String detectorName);
+    default void forgetSessions() { }   // depois do reset do lab (#60): LabCaseRunner esquece o cookie do DVWA
     record CaseResult(boolean predictedVulnerable, double confidence, long elapsedMillis) {}
 }
 
+// Costura do reset do lab entre execuções (#60). Não é porta: fica em app/, como o CaseRunner.
+// Real: DockerComposeLabReset (docker compose down/up -d + espera cada baseUrl responder).
+public interface LabReset {
+    LabReset NONE = baseUrls -> { };
+    void reset(java.util.List<java.net.URI> baseUrls);   // falha/prazo → IllegalStateException
+}
+
 // Roda N vezes; grava run-<n>.csv e summary.csv; devolve detector → (tipo|TOTAL) → ConfusionMatrix.
+// Com reset ≠ NONE: antes de cada execução, reset.reset(baseUrls do gabarito) e runner.forgetSessions().
 public final class BenchmarkRunner {
-    public BenchmarkRunner(GroundTruth gt, CaseRunner runner, java.util.List<String> detectors, int runs) { ... }
+    public BenchmarkRunner(GroundTruth gt, CaseRunner runner, java.util.List<String> detectors, int runs) { ... } // reset = NONE
+    public BenchmarkRunner(GroundTruth gt, CaseRunner runner, java.util.List<String> detectors, int runs, LabReset reset) { ... }
     public java.util.Map<String, java.util.Map<String, ConfusionMatrix>> run(java.nio.file.Path outDir) { ... }
 }
 ```

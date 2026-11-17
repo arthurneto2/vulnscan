@@ -76,6 +76,12 @@ public final class LabCaseRunner implements CaseRunner {
         return new CaseResult(!findings.isEmpty(), confidence, elapsed);
     }
 
+    /** Esquece os cookies do DVWA: depois do reset do lab, a sessão antiga não vale mais. */
+    @Override
+    public void forgetSessions() {
+        dvwaCookies.clear();
+    }
+
     private VulnModule moduleFor(Case c, Detector detector) {
         HttpClient http = httpFor(c, this.http);
         return switch (c.type()) {

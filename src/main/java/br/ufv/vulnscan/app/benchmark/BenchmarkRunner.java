@@ -6,6 +6,7 @@ import br.ufv.vulnscan.app.benchmark.GroundTruth.TargetCases;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,7 +21,8 @@ import java.util.Map;
  * contra a verdade, acumula a matriz de confusão por tipo e no total (por detector) e grava
  * {@code run-<n>.csv} e {@code summary.csv} (ver {@code docs/experiment.md}). O que executa um
  * caso é a costura {@link CaseRunner}; erro de um caso vira linha {@code outcome=ERRO} e o
- * benchmark segue.
+ * benchmark segue. Com um {@link LabReset} (≠ {@link LabReset#NONE}), reseta o lab antes de cada
+ * execução e faz o runner esquecer as sessões; falha no reset aborta o benchmark.
  */
 public final class BenchmarkRunner {
 
@@ -32,12 +34,19 @@ public final class BenchmarkRunner {
     private final CaseRunner runner;
     private final List<String> detectors;
     private final int runs;
+    private final LabReset reset;
 
     public BenchmarkRunner(GroundTruth groundTruth, CaseRunner runner, List<String> detectors, int runs) {
+        this(groundTruth, runner, detectors, runs, LabReset.NONE);
+    }
+
+    public BenchmarkRunner(GroundTruth groundTruth, CaseRunner runner, List<String> detectors, int runs,
+                           LabReset reset) {
         this.groundTruth = groundTruth;
         this.runner = runner;
         this.detectors = List.copyOf(detectors);
         this.runs = runs;
+        this.reset = reset;
     }
 
     /** Executa o experimento, grava os CSVs em {@code outDir} e devolve detector → (tipo|TOTAL) → matriz. */
@@ -54,7 +63,12 @@ public final class BenchmarkRunner {
             times.put(detector, new long[2]);
         }
 
+        List<URI> baseUrls = groundTruth.targets().stream().map(TargetCases::baseUrl).toList();
         for (int n = 1; n <= runs; n++) {
+            if (reset != LabReset.NONE) {
+                reset.reset(baseUrls);
+                runner.forgetSessions();
+            }
             List<String> rows = new ArrayList<>();
             rows.add(RUN_HEADER);
             for (TargetCases target : groundTruth.targets()) {

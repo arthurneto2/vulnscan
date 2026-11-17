@@ -11,10 +11,12 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Testes do BenchmarkRunner com CaseRunner fake e saída em @TempDir. */
@@ -100,6 +102,78 @@ class BenchmarkRunnerTest {
         ConfusionMatrix total = m.get("heuristic").get("TOTAL");
         assertEquals(0, total.tp());
         assertEquals(1, total.fn()); // xss-pos previsto false
+    }
+
+    @Test
+    void resetaOLabAntesDeCadaExecucao() {
+        List<String> log = new ArrayList<>();
+        LabReset reset = urls -> log.add("reset " + urls);
+        CaseRunner runner = (c, base, det) -> {
+            log.add("caso " + c.id());
+            return new CaseResult(c.vulnerable(), 0.9, 1);
+        };
+
+        new BenchmarkRunner(GT, runner, List.of("heuristic"), 3, reset).run(out);
+
+        List<String> umaExecucao = List.of("reset [" + BASE + "]",
+                "caso sqli-pos", "caso sqli-neg", "caso xss-pos", "caso xss-neg");
+        List<String> esperado = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            esperado.addAll(umaExecucao);
+        }
+        assertEquals(esperado, log);
+    }
+
+    @Test
+    void falhaNoResetAbortaOBenchmark() {
+        List<String> casos = new ArrayList<>();
+        LabReset falha = urls -> {
+            throw new IllegalStateException("lab não subiu");
+        };
+        CaseRunner runner = (c, base, det) -> {
+            casos.add(c.id());
+            return new CaseResult(false, 0.0, 1);
+        };
+
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> new BenchmarkRunner(GT, runner, List.of("heuristic"), 2, falha).run(out));
+
+        assertEquals("lab não subiu", e.getMessage());
+        assertTrue(casos.isEmpty(), casos::toString);
+    }
+
+    @Test
+    void esqueceAsSessoesDepoisDoReset() {
+        List<String> log = new ArrayList<>();
+        CaseRunner runner = new LoggingRunner(log);
+
+        new BenchmarkRunner(GT, runner, List.of("heuristic"), 2, urls -> log.add("reset")).run(out);
+
+        assertEquals(List.of("reset", "forget", "caso", "caso", "caso", "caso",
+                "reset", "forget", "caso", "caso", "caso", "caso"), log);
+    }
+
+    @Test
+    void semResetNaoEsqueceAsSessoes() {
+        List<String> log = new ArrayList<>();
+
+        new BenchmarkRunner(GT, new LoggingRunner(log), List.of("heuristic"), 2).run(out);
+
+        assertTrue(log.stream().noneMatch("forget"::equals), log::toString);
+    }
+
+    /** Runner que registra os casos e o forgetSessions() num log compartilhado. */
+    private record LoggingRunner(List<String> log) implements CaseRunner {
+        @Override
+        public CaseResult run(Case c, URI base, String det) {
+            log.add("caso");
+            return new CaseResult(c.vulnerable(), 0.9, 1);
+        }
+
+        @Override
+        public void forgetSessions() {
+            log.add("forget");
+        }
     }
 
     /** Runner perfeito: prevê exatamente o gabarito. */
