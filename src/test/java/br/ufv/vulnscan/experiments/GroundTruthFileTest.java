@@ -52,6 +52,15 @@ class GroundTruthFileTest {
         }
     }
 
+    /** XSS de DOM (fragmento no location) precisa de negativo para medir o FP nesse caminho (#77). */
+    @Test
+    void xssDeDomTemPositivoENegativo() {
+        List<JsonNode> dom = cases.stream().filter(c -> c.path("location").asText().contains("#")).toList();
+
+        assertTrue(dom.stream().anyMatch(c -> c.path("vulnerable").asBoolean()), "falta positivo de DOM: " + dom);
+        assertTrue(dom.stream().anyMatch(c -> !c.path("vulnerable").asBoolean()), "falta negativo de DOM: " + dom);
+    }
+
     @Test
     void osTresTiposDeFalhaEstaoPresentes() {
         assertTrue(temTipo("SQL_INJECTION"), "falta SQL_INJECTION");

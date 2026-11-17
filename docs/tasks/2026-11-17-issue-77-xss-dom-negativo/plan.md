@@ -19,12 +19,12 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   ainda usa `url`). Green: trocar a chamada. Javadoc do módulo cita a codificação.
   Verificar: `mvn test -Dtest=DomXssModuleTest`.
 
-- [ ] **3. Gabarito com o par de DOM do DVWA (red → green).**
+- [x] **3. Gabarito com o par de DOM do DVWA (red → green).**
   Teste: `GroundTruthFileTest#xssDeDomTemPositivoENegativo` (red: só há o positivo do Juice
   Shop). Green: os dois casos da spec no `experiments/ground_truth.yaml`.
   Verificar: `mvn test -Dtest=GroundTruthFileTest`.
 
-- [ ] **4. Docs.** `docs/experiment.md` (limitação do DOM: o que mudou e desde quando;
+- [x] **4. Docs.** `docs/experiment.md` (limitação do DOM: o que mudou e desde quando;
   rodadas anteriores com 14 casos e `URLEncoder` no DOM), `docs/ground-truth.md` (exemplo de
   DOM com fragmento), `docs/contracts.md` (já no passo 1).
 

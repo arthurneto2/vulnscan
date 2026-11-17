@@ -30,6 +30,10 @@ targets:
         location: "/#/search?q="
         vulnerable: true
         notes: "parâmetro de busca reflete sem sanitizar"
+      - id: js-xss-dom-search         # XSS de DOM: o "#" no location faz o benchmark abrir no navegador
+        type: XSS_REFLECTED
+        location: "/#/search?q="
+        vulnerable: true
       - id: js-xss-sanitized-field
         type: XSS_REFLECTED
         location: "/#/contact"
