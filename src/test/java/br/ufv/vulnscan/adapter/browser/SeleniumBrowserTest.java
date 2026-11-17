@@ -17,8 +17,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -67,6 +70,16 @@ class SeleniumBrowserTest {
         assertTrue(page.html().contains("PHPSESSID=abc"), page.html());
         assertTrue(page.html().contains("security=low"), page.html());
         assertEquals(List.of(), page.dialogs());
+    }
+
+    /** #62: os avisos de CDP (não usado) ficam calados; o resto do Selenium não muda. */
+    @Test
+    void avisosDeCdpSilenciados() throws ClassNotFoundException {
+        Class.forName(SeleniumBrowser.class.getName());
+
+        assertEquals(Level.SEVERE, Logger.getLogger("org.openqa.selenium.devtools.CdpVersionFinder").getLevel());
+        assertEquals(Level.SEVERE, Logger.getLogger("org.openqa.selenium.chromium.ChromiumDriver").getLevel());
+        assertNull(Logger.getLogger("org.openqa.selenium").getLevel(), "o pacote inteiro não deveria mudar");
     }
 
     private RenderedPage open(String path, Map<String, String> headers) {

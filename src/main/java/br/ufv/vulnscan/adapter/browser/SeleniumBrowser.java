@@ -17,6 +17,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Adaptador de navegador: implementa a interface {@link XssBrowser} dos módulos de XSS com
@@ -29,7 +31,22 @@ import java.util.Map;
  */
 public final class SeleniumBrowser implements XssBrowser {
 
+    /**
+     * Avisos de CDP calados (#62): o Selenium avisa a cada sessão quando não tem o CDP da versão
+     * do Chrome instalada, e o vulnscan não usa CDP (só WebDriver, {@code executeScript} e alertas).
+     * Só estes dois loggers, pelo nome exato; campos estáticos porque o JUL guarda referência
+     * fraca e o nível se perderia com o logger coletado.
+     */
+    private static final Logger CDP_VERSION_LOG = quiet("org.openqa.selenium.devtools.CdpVersionFinder");
+    private static final Logger CHROMIUM_LOG = quiet("org.openqa.selenium.chromium.ChromiumDriver");
+
     private static final long SETTLE_MILLIS = 1500;
+
+    private static Logger quiet(String name) {
+        Logger logger = Logger.getLogger(name);
+        logger.setLevel(Level.SEVERE);
+        return logger;
+    }
     private static final long POLL_MILLIS = 100;
 
     @Override
