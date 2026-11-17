@@ -57,6 +57,8 @@ record ScanReport(Target target, java.time.Instant startedAt,
 // domain/detection/Detector.java
 // Julga se uma evidência indica vulnerabilidade. Duas implementações:
 //   HeuristicDetector (regex/regras, puro)  e  LlmDetector (usa a porta LlmClient).
+//   LlmDetector.UNAVAILABLE ("LLM indisponível") e LlmDetector.unavailable(Verdict): o veredito é de
+//   falha do cliente (o modelo não respondeu)? No benchmark, caso sem achado com isso vira ERRO (#74).
 public interface Detector {
     Verdict judge(Evidence evidence);
     String name();   // "heuristic" ou "llm"

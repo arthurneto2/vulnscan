@@ -63,6 +63,8 @@ da #60, dois FN do Ultra levaram 175 e 456 ms (uma chamada normal leva de 7 a 44
 2. `LabCaseRunnerTest#llmIndisponivelSemAchadoViraErro`: detector `llm` falso que devolve
    indisponível em todas as chamadas → `run` lança `IllegalStateException` com
    `LLM indisponível` e a contagem `k de n`.
+   `#umaChamadaIndisponivelSemAchadoTambemViraErro`: uma chamada "não" e outra indisponível →
+   exceção com `1 de 2`.
 3. `LabCaseRunnerTest#llmIndisponivelComAchadoVale`: uma chamada indisponível e outra
    positiva → `CaseResult(true, …)`, sem exceção.
 4. `LabCaseRunnerTest#negativoNormalContinuaNegativo`: todas as chamadas respondem "não" →

@@ -39,6 +39,8 @@ import java.util.regex.Pattern;
 public final class LlmDetector implements Detector {
 
     private static final String NAME = "llm";
+    /** Prefixo da justificativa quando o cliente falhou (o modelo não respondeu). */
+    public static final String UNAVAILABLE = "LLM indisponível";
     private static final int MAX_BODY_CHARS = 4096;
     /**
      * Token do payload que serve de âncora no corpo: 6+ letras e dígitos, com pelo menos um de
@@ -66,9 +68,18 @@ public final class LlmDetector implements Detector {
         try {
             raw = llm.complete(prompt(evidence));
         } catch (RuntimeException e) {
-            return new Verdict(false, 0.0, "LLM indisponível: " + e.getMessage(), NAME);
+            return new Verdict(false, 0.0, UNAVAILABLE + ": " + e.getMessage(), NAME);
         }
         return ground(parse(raw), evidence);
+    }
+
+    /**
+     * O veredito é de indisponibilidade (o cliente falhou e o modelo não respondeu)? Distingue isso
+     * de um "não vulnerável" de verdade; o benchmark conta o caso como {@code ERRO} (#74).
+     */
+    public static boolean unavailable(Verdict verdict) {
+        return NAME.equals(verdict.detector()) && verdict.rationale() != null
+                && verdict.rationale().startsWith(UNAVAILABLE);
     }
 
     /**

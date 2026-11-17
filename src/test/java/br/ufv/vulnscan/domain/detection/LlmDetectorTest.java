@@ -100,6 +100,31 @@ class LlmDetectorTest {
     }
 
     @Test
+    void falhaDoClienteEhIndisponivel() {
+        LlmClient falho = prompt -> {
+            throw new IllegalStateException("API de IA respondeu 429: rate limit");
+        };
+
+        assertTrue(LlmDetector.unavailable(new LlmDetector(falho).judge(sqli())));
+    }
+
+    @Test
+    void respostaNaoParseavelNaoEhIndisponivel() {
+        assertFalse(LlmDetector.unavailable(detector("desculpe, não sei responder").judge(sqli())));
+    }
+
+    @Test
+    void vereditoNormalNaoEhIndisponivel() {
+        assertFalse(LlmDetector.unavailable(detector("{\"vulnerable\":false,\"confidence\":0.9}").judge(sqli())));
+    }
+
+    @Test
+    void outroDetectorNaoEhIndisponivel() {
+        assertFalse(LlmDetector.unavailable(
+                new Verdict(false, 0.0, LlmDetector.UNAVAILABLE + ": x", "heuristic")));
+    }
+
+    @Test
     void promptCitaTipoPayloadRequisicaoETruncaCorpo() {
         StringBuilder corpo = new StringBuilder();
         for (int i = 0; i < 10_000; i++) {

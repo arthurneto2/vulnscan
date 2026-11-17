@@ -6,7 +6,7 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
 
 ## Passos
 
-- [ ] **1. `LlmDetector.unavailable(Verdict)` (red → green).**
+- [x] **1. `LlmDetector.unavailable(Verdict)` (red → green).**
   Testes em `LlmDetectorTest`: `falhaDoClienteEhIndisponivel`,
   `respostaNaoParseavelNaoEhIndisponivel`, `vereditoNormalNaoEhIndisponivel`,
   `outroDetectorNaoEhIndisponivel`.
@@ -14,9 +14,9 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   Green: constante `UNAVAILABLE`, usada no `judge`; `unavailable` checa detector `llm` e prefixo.
   Contrato em `docs/contracts.md`. Verificar: `mvn test -Dtest=LlmDetectorTest`.
 
-- [ ] **2. `RecordingDetector` e a regra no `LabCaseRunner` (red → green).**
+- [x] **2. `RecordingDetector` e a regra no `LabCaseRunner` (red → green).**
   Testes em `LabCaseRunnerTest`: `llmIndisponivelSemAchadoViraErro`,
-  `llmIndisponivelComAchadoVale`, `negativoNormalContinuaNegativo`. Caso de SQLi do Juice Shop
+  `umaChamadaIndisponivelSemAchadoTambemViraErro`, `llmIndisponivelComAchadoVale`, `negativoNormalContinuaNegativo`. Caso de SQLi do Juice Shop
   (sem login), `HttpClient` falso, dois payloads, detector `llm` falso com vereditos roteirizados.
   Red: hoje o 1º devolve `CaseResult(false, …)` em vez de lançar.
   Green: decorador `RecordingDetector` (package-private) que guarda os vereditos; o `run`
