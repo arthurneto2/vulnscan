@@ -9,6 +9,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.ParentCommand;
 import picocli.CommandLine.Spec;
 
+import java.io.PrintWriter;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -79,6 +80,9 @@ final class ScanCommand implements Callable<Integer> {
         try {
             ScanReport report = main.scanService(llm).scan(
                     new ScanRequest(target, modules, format, output, parseHeaders(headers), detector));
+            if (!report.errors().isEmpty()) {
+                return partial(report, output);
+            }
             spec.commandLine().getOut().printf("Scan concluído: %d achado(s). Relatório: %s%n",
                     report.findings().size(), output);
             return Main.EXIT_OK;
@@ -113,6 +117,18 @@ final class ScanCommand implements Callable<Integer> {
         return host.equalsIgnoreCase("localhost")
                 || LOOPBACK_V4.matcher(host).matches()
                 || host.equals("[::1]");
+    }
+
+    /**
+     * Relatório parcial (#58): algum módulo falhou. O relatório já foi gravado com os erros; aqui
+     * eles vão para o stderr e a saída é {@code 2}, para não confundir com um scan completo.
+     */
+    private int partial(ScanReport report, Path output) {
+        PrintWriter err = spec.commandLine().getErr();
+        report.errors().forEach(e -> err.printf("erro no módulo %s: %s%n", e.module(), e.message()));
+        err.printf("Scan incompleto: %d achado(s), %d módulo(s) com erro. Relatório: %s%n",
+                report.findings().size(), report.errors().size(), output);
+        return Main.EXIT_EXECUTION;
     }
 
     private int error(RuntimeException e, int exitCode) {

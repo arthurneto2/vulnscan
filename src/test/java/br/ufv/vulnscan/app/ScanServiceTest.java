@@ -1,6 +1,7 @@
 package br.ufv.vulnscan.app;
 
 import br.ufv.vulnscan.domain.model.Finding;
+import br.ufv.vulnscan.domain.model.ModuleError;
 import br.ufv.vulnscan.domain.model.ScanReport;
 import br.ufv.vulnscan.domain.model.Severity;
 import br.ufv.vulnscan.domain.model.Target;
@@ -138,15 +139,14 @@ class ScanServiceTest {
     }
 
     @Test
-    void excecaoDeModuloPropagaSemGravar() {
-        IllegalStateException failure = new IllegalStateException("alvo fora do ar");
-        ScanService service = service(Map.of("sqli", new FakeModule("sqli", List.of(), failure)));
+    void relatorioEhGravadoMesmoComModuloEmErro() {
+        ScanService service = service(Map.of("sqli",
+                new FakeModule("sqli", List.of(), new IllegalStateException("alvo fora do ar"))));
 
-        IllegalStateException thrown = assertThrows(IllegalStateException.class,
-                () -> service.scan(request(List.of())));
+        ScanReport report = service.scan(request(List.of()));
 
-        assertSame(failure, thrown);
-        assertNull(md.written, "nada deveria ser gravado");
+        assertSame(report, md.written);
+        assertEquals(List.of(new ModuleError("FakeModule", "alvo fora do ar")), report.errors());
     }
 
     @Test
