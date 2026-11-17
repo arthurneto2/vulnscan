@@ -30,14 +30,14 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   Green: `forgetSessions()` limpa `dvwaCookies`.
   Verificar: `mvn test -Dtest=LabCaseRunnerTest`.
 
-- [ ] **4. `DockerComposeLabReset` — comandos (red → green).**
+- [x] **4. `DockerComposeLabReset` — comandos (red → green).**
   Testes: `DockerComposeLabResetTest#rodaOsComandosEmOrdemEEsperaOAlvo` (dois `sh -c` que
   anotam num arquivo do `@TempDir`; `HttpClient` falso respondendo 302) e
   `#comandoComFalhaAbortaCitandoOComandoEOCodigo` (comando `false`).
   Green: `ProcessBuilder(cmd).inheritIO()`, `waitFor()`, código ≠ 0 →
   `IllegalStateException("reset do lab: '<cmd>' saiu com <código>")`.
 
-- [ ] **5. `DockerComposeLabReset` — espera dos alvos (red → green).**
+- [x] **5. `DockerComposeLabReset` — espera dos alvos (red → green).**
   Testes: `#alvoQueNaoRespondeNoPrazoAborta` (`HttpClient` falso que sempre lança, prazo de ~300 ms,
   intervalo de ~50 ms) e `#alvoQueSobeDepoisDeAlgumasTentativasPassa` (`HttpClient` falso
   que lança 2 vezes e depois responde).
