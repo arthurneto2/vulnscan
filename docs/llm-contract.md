@@ -58,12 +58,17 @@ O prompt é em inglês (os modelos testados são mais estáveis em inglês) e te
 2. **Tipo e critério:** o `VulnType` e um critério de evidência em texto para esse tipo
    (SQLi: erro de banco causado pelo payload ou mudança clara na lógica, como atraso;
    XSS: payload com `<` e `>` literais em resposta HTML, e entidades `&lt; &gt;` significam
-   escapado; auth/controle de acesso: a requisição foi feita indevida de propósito, e só 2xx
+   escapado, exceto se um diálogo capturado pelo navegador contiver o marcador do payload,
+   o que prova a execução (#81); auth/controle de acesso: a requisição foi feita indevida de propósito, e só 2xx
    com dado protegido é vulnerável). O critério é contexto para o modelo julgar; o código
    não aplica regra por tipo ao veredito.
 3. **Evidência completa:** payload, descrição do payload (ex.: "probe de NONE (requisição
    sem token)"), método + URL, headers da requisição, status, tempo de resposta (ms),
-   headers da resposta e até 4 KB do corpo (ver "Trecho do corpo" abaixo).
+   headers da resposta e até 4 KB do corpo (ver "Trecho do corpo" abaixo). Quando o caso foi
+   aberto no navegador e algum diálogo JavaScript disparou, uma linha própria
+   `Browser dialogs: <textos>` explica o que é (os `alert`/`confirm`/`prompt` que de fato
+   dispararam, capturados pelo scanner; pseudo-header `x-vulnscan-dialogs`). Sem diálogo, a
+   linha não aparece (#81).
 4. **Formato da saída**, com os campos na ordem abaixo.
 
 Não mande a resposta HTTP inteira sem truncar — modelos pequenos têm janela limitada.
@@ -102,8 +107,8 @@ O modelo deve devolver, **nesta ordem** (evidência e raciocínio antes do vered
 }
 ```
 
-`evidence` é um trecho de até 120 caracteres copiado literalmente do corpo da resposta, ou
-`""`. A ordem importa: com `vulnerable` primeiro, o modelo se comprometia com o veredito
+`evidence` é um trecho de até 120 caracteres copiado literalmente do corpo da resposta ou
+da linha `Browser dialogs` (#81), ou `""`. A ordem importa: com `vulnerable` primeiro, o modelo se comprometia com o veredito
 antes de raciocinar e respondia "vulnerável" em 100% dos casos (issue #61), inclusive com
 justificativa contraditória ("401 Unauthorized" e `vulnerable: true`).
 
@@ -114,7 +119,7 @@ parse, só pedida no prompt.
 ## Grounding (obrigatório)
 
 Se `vulnerable == true` e `evidence` estiver vazio, ausente ou não aparecer no corpo da
-resposta, o veredito vira
+resposta nem nos diálogos capturados pelo navegador (#81), o veredito vira
 `new Verdict(false, 0.2, "veredito do LLM sem evidência na resposta: <rationale>", "llm")`.
 A comparação ignora espaços em branco e maiúsculas e **não** desfaz escape de HTML (o caso
 real era o modelo citar `<script>…` cru quando o corpo tinha `&lt;script&gt;…`).

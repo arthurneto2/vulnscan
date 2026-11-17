@@ -74,6 +74,13 @@ conhecida.
   O mesmo vale para a janela do corpo (issue #72): a exigência de letra e dígito no token
   que ancora a janela foi acrescentada depois de uma rodada em que o Ultra errou
   `js-auth-admin-config`, também nesses 14 casos.
+  E vale para os diálogos no prompt (issue #81): a linha `Browser dialogs`, a frase do
+  critério de XSS sobre o diálogo com o marcador e o grounding que aceita citar o diálogo
+  foram acrescentados depois que `dvwa-xss-dom-low` deu FN nos dois modelos (Qwen 2/2 na
+  #77, Ultra 1/1 na #79) com a heurística em TP. A justificativa é uma assimetria de
+  informação: a heurística já usava o diálogo com o significado embutido, e o LLM recebia o
+  pseudo-header cru, sem explicação. A regra é genérica (todo XSS no navegador), mas foi
+  motivada por um caso do gabarito.
 - **Negativo de XSS de DOM só desde a #77.** Até a #77, `js-xss-dom-search` era o único caso
   de DOM e era positivo: o FP do LLM nesse caminho (DOM renderizado, janela ao redor do
   payload) não era medido, e as rodadas tinham 14 casos. A #77 acrescentou o par do DVWA

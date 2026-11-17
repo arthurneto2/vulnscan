@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  * <p>O prompt (em inglês) pede o trecho de evidência e a justificativa <b>antes</b> do veredito,
  * traz um critério de evidência por tipo e avisa que "não vulnerável" é resposta comum (issue #61:
  * com o veredito primeiro, o modelo dizia "vulnerável" em todos os casos). <b>Grounding:</b> um
- * {@code vulnerable: true} cujo {@code evidence} esteja vazio ou não apareça no corpo (sem espaços,
+ * {@code vulnerable: true} cujo {@code evidence} esteja vazio ou não apareça no corpo nem nos diálogos capturados pelo navegador (#81) (sem espaços,
  * sem diferenciar maiúsculas, sem desfazer escape de HTML; se o trecho for JSON, vale a string
  * desembrulhada ou todos os pares {@code "chave":valor} escalares citados) vira {@code Verdict(false, 0.2,
  * "veredito do LLM sem evidência na resposta: <rationale>", "llm")}. A regra é genérica, igual
@@ -84,7 +84,7 @@ public final class LlmDetector implements Detector {
 
     /**
      * Grounding: um veredito positivo só vale se o trecho citado em {@code evidence} existir no corpo
-     * da resposta (ignorando espaços e maiúsculas, sem desfazer escape de HTML). Regra genérica, igual
+     * da resposta ou nos diálogos capturados pelo navegador (#81) (ignorando espaços e maiúsculas, sem desfazer escape de HTML). Regra genérica, igual
      * para todo tipo; vereditos negativos passam sem alteração.
      */
     private Verdict ground(Parsed parsed, Evidence evidence) {
@@ -93,7 +93,8 @@ public final class LlmDetector implements Detector {
             return verdict;
         }
         String body = normalize(Objects.requireNonNullElse(evidence.response().body(), ""));
-        if (grounded(parsed.evidence(), body)) {
+        String dialogs = normalize(evidence.response().headers().getOrDefault(HttpResponse.DIALOGS_HEADER, ""));
+        if (grounded(parsed.evidence(), body) || (!dialogs.isEmpty() && grounded(parsed.evidence(), dialogs))) {
             return verdict;
         }
         return new Verdict(false, UNGROUNDED_CONFIDENCE, UNGROUNDED + ": " + verdict.rationale(), NAME);
@@ -248,20 +249,34 @@ public final class LlmDetector implements Detector {
                 Response status: %d
                 Response time: %d ms
                 Response headers: %s
-                Response body:
+                %sResponse body:
                 %s
 
                 Answer with JSON only, with the fields in this exact order:
                 {"evidence": "<a short excerpt (at most %d characters) copied character-for-character \
-                from the Response body above, or an empty string if nothing in the body supports a \
-                vulnerability>",
+                from the Response body above or from the Browser dialogs line, or an empty string if \
+                nothing supports a vulnerability>",
                  "rationale": "<one or two sentences applying the criterion to the evidence>",
                  "vulnerable": <true or false>,
                  "confidence": <number between 0 and 1>}
                 """.formatted(evidence.payload().type(), criterion(evidence.payload().type()),
                 evidence.payload().value(), evidence.payload().description(), request.method(), request.url(), request.headers(),
-                response.status(), response.elapsedMillis(), response.headers(), bodyForPrompt,
+                response.status(), response.elapsedMillis(), response.headers(), dialogsLine(response),
+                bodyForPrompt,
                 MAX_EVIDENCE_CHARS);
+    }
+
+    /**
+     * Linha dos diálogos capturados pelo navegador (#81), só se houve algum: sem ela o modelo não
+     * sabe o que é o pseudo-header. Sem navegador (HTTP puro) não há linha: dizer "nenhum" enganaria.
+     */
+    private static String dialogsLine(HttpResponse response) {
+        String dialogs = response.headers().get(HttpResponse.DIALOGS_HEADER);
+        if (dialogs == null || dialogs.isBlank()) {
+            return "";
+        }
+        return "Browser dialogs: " + dialogs + "\n(JavaScript alert/confirm/prompt dialogs that actually fired "
+                + "while a real browser rendered this page, captured by the scanner)\n";
     }
 
     /**
@@ -315,7 +330,10 @@ public final class LlmDetector implements Detector {
                     + "If the body contains HTML entities such as &lt; and &gt; where the payload had < and "
                     + ">, the input was escaped: the browser shows it as harmless text, so the answer is NOT "
                     + "vulnerable. Vulnerable only if the literal characters < and > of the payload appear "
-                    + "in an HTML response.";
+                    + "in an HTML response. Exception: if a Browser dialogs line is present and a dialog "
+                    + "text contains the payload's unique marker (the vsx... token), the payload executed "
+                    + "in the browser: vulnerable, even if other copies of it in the body look encoded or "
+                    + "escaped.";
             case BROKEN_AUTH -> "The request was deliberately sent without valid authorization (see the "
                     + "test description and the request headers). Vulnerable only if the server granted "
                     + "access: a 2xx status returning protected data. 401, 403, a redirect to a login page "
