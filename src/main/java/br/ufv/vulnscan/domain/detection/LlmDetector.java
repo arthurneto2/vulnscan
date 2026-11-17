@@ -50,6 +50,18 @@ public final class LlmDetector implements Detector {
     private static final Pattern TOKEN = Pattern.compile("(?=[A-Za-z0-9]*[0-9])(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{6,}");
     /** Trecho curto: citar um JSON longo faz o modelo entrar em repetição (Ollama aborta). */
     private static final int MAX_EVIDENCE_CHARS = 120;
+
+    /**
+     * Instrução do {@code evidence} sem diálogos: o texto de antes da #81, byte a byte. Citar a linha
+     * de diálogos em todo prompt derrubou o Qwen 14B nos casos de API (A/B: 9/9 → 2/9 TP; #83).
+     */
+    private static final String EVIDENCE_BODY_ONLY = "copied character-for-character from the Response "
+            + "body above, or an empty string if nothing in the body supports a vulnerability";
+
+    /** Instrução do {@code evidence} quando há a linha {@code Browser dialogs} (#81). */
+    private static final String EVIDENCE_WITH_DIALOGS = "copied character-for-character from the Response "
+            + "body above or from the Browser dialogs line, or an empty string if nothing supports a "
+            + "vulnerability";
     private static final String UNPARSEABLE = "resposta do LLM não parseável";
     private static final String UNGROUNDED = "veredito do LLM sem evidência na resposta";
     private static final double UNGROUNDED_CONFIDENCE = 0.2;
@@ -253,9 +265,7 @@ public final class LlmDetector implements Detector {
                 %s
 
                 Answer with JSON only, with the fields in this exact order:
-                {"evidence": "<a short excerpt (at most %d characters) copied character-for-character \
-                from the Response body above or from the Browser dialogs line, or an empty string if \
-                nothing supports a vulnerability>",
+                {"evidence": "<a short excerpt (at most %d characters) %s>",
                  "rationale": "<one or two sentences applying the criterion to the evidence>",
                  "vulnerable": <true or false>,
                  "confidence": <number between 0 and 1>}
@@ -263,7 +273,12 @@ public final class LlmDetector implements Detector {
                 evidence.payload().value(), evidence.payload().description(), request.method(), request.url(), request.headers(),
                 response.status(), response.elapsedMillis(), response.headers(), dialogsLine(response),
                 bodyForPrompt,
-                MAX_EVIDENCE_CHARS);
+                MAX_EVIDENCE_CHARS, hasDialogs(response) ? EVIDENCE_WITH_DIALOGS : EVIDENCE_BODY_ONLY);
+    }
+
+    private static boolean hasDialogs(HttpResponse response) {
+        String dialogs = response.headers().get(HttpResponse.DIALOGS_HEADER);
+        return dialogs != null && !dialogs.isBlank();
     }
 
     /**
@@ -271,11 +286,10 @@ public final class LlmDetector implements Detector {
      * sabe o que é o pseudo-header. Sem navegador (HTTP puro) não há linha: dizer "nenhum" enganaria.
      */
     private static String dialogsLine(HttpResponse response) {
-        String dialogs = response.headers().get(HttpResponse.DIALOGS_HEADER);
-        if (dialogs == null || dialogs.isBlank()) {
+        if (!hasDialogs(response)) {
             return "";
         }
-        return "Browser dialogs: " + dialogs + "\n(JavaScript alert/confirm/prompt dialogs that actually fired "
+        return "Browser dialogs: " + response.headers().get(HttpResponse.DIALOGS_HEADER) + "\n(JavaScript alert/confirm/prompt dialogs that actually fired "
                 + "while a real browser rendered this page, captured by the scanner)\n";
     }
 

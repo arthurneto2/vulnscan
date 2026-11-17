@@ -81,6 +81,18 @@ conhecida.
   informação: a heurística já usava o diálogo com o significado embutido, e o LLM recebia o
   pseudo-header cru, sem explicação. A regra é genérica (todo XSS no navegador), mas foi
   motivada por um caso do gabarito.
+  A #81 também trocou, em **todo** prompt, a instrução do `evidence`, que passou a citar a
+  linha de diálogos e a dizer "if nothing supports". Isso derrubou o Qwen 14B nos casos de
+  API, onde a linha nunca aparece. A rodada de referência pós-#81 deu F1 0.851, com 7 FN em
+  autenticação e autorização. A causa foi confirmada num A/B com os 5 casos de API do Juice
+  Shop (Qwen, `--runs 3 --reset`, jars antes e depois da #81, um em seguida do outro):
+  | | positivos (TP) | negativos (TN) |
+  |---|---|---|
+  | antes da #81 | 9/9 | 6/6 |
+  | depois da #81 | 2/9 | 6/6 |
+  A #83 volta ao texto antigo quando não há diálogos: o prompt de um caso sem navegador
+  fica igual ao de antes da #81, byte a byte. A rodada de referência do Qwen feita entre
+  a #81 e a #83 não vale como referência. A do Ultra, que não foi afetado, vale.
 - **Negativo de XSS de DOM só desde a #77.** Até a #77, `js-xss-dom-search` era o único caso
   de DOM e era positivo: o FP do LLM nesse caminho (DOM renderizado, janela ao redor do
   payload) não era medido, e as rodadas tinham 14 casos. A #77 acrescentou o par do DVWA

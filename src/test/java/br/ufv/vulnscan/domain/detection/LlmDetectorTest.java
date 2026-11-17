@@ -377,13 +377,32 @@ class LlmDetectorTest {
         assertFalse(promptFor(VulnType.XSS_REFLECTED).contains("Browser dialogs:"));
     }
 
+    /** #83: sem diálogos, a instrução do evidence é a de antes da #81 (a nova derrubou o Qwen em API). */
+    @Test
+    void promptSemDialogosUsaInstrucaoDeEvidenciaAntiga() {
+        String prompt = promptFor(VulnType.BROKEN_ACCESS_CONTROL);
+
+        assertTrue(prompt.contains("copied character-for-character from the Response body above, or an "
+                + "empty string if nothing in the body supports a vulnerability>"), prompt);
+        assertFalse(prompt.contains("from the Browser dialogs line"), prompt);
+    }
+
+    @Test
+    void promptComDialogosUsaInstrucaoDeEvidenciaComDialogos() {
+        CapturingClient cap = new CapturingClient();
+
+        new LlmDetector(cap).judge(xssNoNavegador("<option value=\"%3Cscript%3E\">", "vsx1a2b3c4d"));
+
+        assertTrue(cap.prompt.contains("from the Response body above or from the Browser dialogs line, or an "
+                + "empty string if nothing supports a vulnerability>"), cap.prompt);
+    }
+
     @Test
     void criterioDeXssFalaDoDialogoComMarcador() {
         String xss = promptFor(VulnType.XSS_REFLECTED);
         String sqli = promptFor(VulnType.SQL_INJECTION);
 
         assertTrue(xss.contains("dialog") && xss.contains("marker"), xss);
-        assertTrue(xss.contains("or from the Browser dialogs line"), "evidence pode vir dos diálogos: " + xss);
         assertFalse(sqli.contains("marker"), sqli);
     }
 
