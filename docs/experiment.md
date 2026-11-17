@@ -212,9 +212,12 @@ A heurística deu o mesmo resultado nas duas rodadas (Ollama e API).
   modelos: é o caso julgado sobre o DOM renderizado pelo navegador. `js-idor-basket` é FN
   em 1 de 3 no Qwen, a única variação entre execuções.
 - Esta tabela substituiu as das seções da #61 e da #65. Hoje o resultado de referência é o
-  da seção seguinte (#72); esta fica como histórico.
+  da seção "Rodada após as #60–#83"; esta fica como histórico.
 
-## Rodada após a #72 (resultado de referência)
+## Rodada após a #72 (histórico)
+
+> Esta seção é histórica. O resultado de referência agora está na seção "Rodada após as
+> #60–#83".
 
 A #72 mudou o trecho do corpo que vai para o prompt: em corpo maior que 4 KB, a janela onde
 o payload aparece, não o começo (`docs/llm-contract.md`, "Trecho do corpo"). Medição de
@@ -242,6 +245,60 @@ Ollama com `200`; nenhum `429` ou erro na API).
   mil caracteres): o começo do JSON, que era a evidência, saiu do prompt, e o Ultra deu FN
   em 3/3. A âncora passou a exigir letra e dígito (o marcador `vsx…`), e a rodada foi
   refeita. Ver a limitação "Ajuste informado pelo gabarito".
+
+## Rodada após as #60–#83 (resultado de referência)
+
+Medição de 2026-11-17 com o gabarito de **16 casos**. A #77 acrescentou o par de XSS de DOM
+do DVWA (`dvwa-xss-dom-low`, positivo; `dvwa-xss-dom-impossible`, negativo).
+
+- **Protocolo:** 16 casos × 3 execuções por modelo, com `benchmark --runs 3 --reset`: o
+  laboratório é resetado automaticamente antes de cada execução (#60).
+- **Ambiente:** Ollama com `LLAMA_ARG_CACHE_RAM=0`, notebook na tomada, sem suspensão
+  (`systemd-inhibit`).
+- **O que mudou desde a #72:**
+  - falha do LLM vira `ERRO`, fora do FN/VN (#74);
+  - retry em 429/5xx na API (#79);
+  - diálogos do navegador no prompt e no grounding (#81), com a correção da instrução do
+    `evidence` (#83).
+
+| Detector | VP | FP | VN | FN | ERRO | Precisão | Recall | F1 | Taxa FP | Mediana | Máx. | F1 por execução |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| heuristic | 27 | 0 | 21 | 0 | 0 | 1.000 | 1.000 | 1.000 | 0% | < 0,1 s | 8 s | 1.000 / 1.000 / 1.000 |
+| llm — `qwen2.5:14b-instruct` (Ollama) | 25 | 0 | 21 | 2 | 0 | 1.000 | 0.926 | 0.962 | 0% | 18,7 s | 107 s | 1.000 / 0.941 / 0.941 |
+| llm — `nemotron-3-ultra-550b-a55b` (API) | 26 | 0 | 15 | 0 | **7** | 1.000 | 1.000 | **1.000**¹ | 0% | 17,1 s | 97 s | 1.000 / 1.000 / 1.000 |
+
+¹ **Sobre 41 de 48 julgamentos.** Os 7 `ERRO` são `429 após 4 tentativas` (limite de
+requisições do plano gratuito, mesmo com o retry da #79) e ficam fora da matriz. Não leia
+como 48/48. Os 7 caíram em casos negativos (6) e em 1 positivo (`js-bac-users-role`, na
+execução 2).
+
+A heurística deu o mesmo resultado nas duas rodadas (Ollama e API).
+
+**Rodadas e commits** (pastas locais em `experiments/results/`):
+
+| Rodada | Commit | Pasta | Duração | Chamadas |
+|---|---|---|---|---|
+| Qwen | `dc7a6ec` (`main` com a #83) | `2026-11-17-ref83-ollama-qwen14b` | 32 min | 96/96 ao Ollama com `200`, nenhum timeout |
+| Ultra | `cbc1612` (antes da #83) | `2026-11-17-ref-api-ultra` | 25 min | — |
+
+A rodada do Ultra é de antes da #83, mas vale como referência:
+- nos casos sem navegador, a #83 só trocou o texto da instrução do `evidence`, e o Ultra
+  acertou com os dois textos (rodada pós-#81 e A/B da #83);
+- nos casos com diálogos, o prompt é idêntico.
+
+A rodada do Qwen feita entre a #81 e a #83 foi descartada (ver a limitação "Ajuste informado
+pelo gabarito").
+
+**Achados**
+- **FP do LLM continua 0%** nos dois modelos, agora com 7 negativos por execução, incluindo
+  os negativos de navegador (`dvwa-xss-dom-impossible`, `dvwa-xss-stored-impossible`).
+- **XSS de DOM do DVWA:** `dvwa-xss-dom-low` dá TP 3/3 no Qwen e no Ultra. Ele virou
+  detectável com a codificação de navegador do `DomXssModule` (#77); o LLM passou a acertar
+  quando o diálogo entrou no prompt (#81).
+- **Qwen: F1 0.962**, igual à referência da #72 (0.957) dentro da variação. O único erro é
+  `js-idor-basket` (FN em 2/3), o mesmo caso instável de todas as rodadas.
+- **Ultra:** acertou todos os 41 casos que chegou a julgar. O custo da API agora é a cota: com
+  o retry, o tempo mediano por caso foi de 10,8 s (#72) para 17,1 s, e ainda sobraram 7 `ERRO`.
 
 ## Saída
 
