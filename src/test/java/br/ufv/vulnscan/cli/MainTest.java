@@ -181,6 +181,18 @@ class MainTest {
         assertFalse(result.err().contains("\tat "), "stack trace no stderr:\n" + result.err());
     }
 
+    /** #58: mensagem com várias linhas (ex.: HTML do 404) sai numa linha só no stderr. */
+    @Test
+    void erroDeModuloComVariasLinhasSaiNumaLinha() {
+        Map<String, VulnModule> modules = Map.of("sqli",
+                new FakeModule("sqli", new IllegalStateException("<html>\n  <h1>Not Found</h1>\n</html>")));
+
+        Result result = run(mainWith(modules), "scan", "--target", "http://localhost:3000");
+
+        assertTrue(result.err().contains("erro no módulo FakeModule: <html> <h1>Not Found</h1> </html>\n"),
+                result.err());
+    }
+
     @Test
     void alvoForaDeLocalhostImprimeAviso() {
         Result result = run(mainWith(registry()), "scan", "--target", "http://example.com");

@@ -125,7 +125,8 @@ final class ScanCommand implements Callable<Integer> {
      */
     private int partial(ScanReport report, Path output) {
         PrintWriter err = spec.commandLine().getErr();
-        report.errors().forEach(e -> err.printf("erro no módulo %s: %s%n", e.module(), e.message()));
+        report.errors().forEach(e -> err.printf("erro no módulo %s: %s%n", e.module(),
+                e.message().replaceAll("\\s+", " ").strip()));
         err.printf("Scan incompleto: %d achado(s), %d módulo(s) com erro. Relatório: %s%n",
                 report.findings().size(), report.errors().size(), output);
         return Main.EXIT_EXECUTION;
