@@ -16,5 +16,5 @@
   commits, achados e a nota sobre o Ultra (commit `cbc1612` e por que a rodada vale).
 - [x] **3. A seção da #72 passa a histórico.** Trocar o título e acrescentar uma linha
   apontando para a seção nova.
-- [x] **4. README.** Não cita números da referência: nada a mudar. Procurar números de referência citados e atualizar, se houver.
+- [x] **4. README.** Não cita números da referência: nada a mudar.
 - [x] **5. `mvn clean verify`.** 389 testes, 0 falhas, BUILD SUCCESS.
