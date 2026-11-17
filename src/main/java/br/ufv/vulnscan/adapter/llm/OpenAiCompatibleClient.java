@@ -10,8 +10,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Adaptador: porta {@link LlmClient} via API compatível com OpenAI
@@ -33,27 +35,46 @@ public final class OpenAiCompatibleClient implements LlmClient {
      *  {@code reasoning_content} antes do {@code content}; com 256 a resposta vinha {@code null}. */
     private static final int MAX_TOKENS = 8192;
     private static final int MAX_ERROR_CHARS = 200;
+    /** 1 chamada + até 3 novas tentativas em 429/5xx (#79). */
+    private static final int MAX_ATTEMPTS = 4;
+    private static final Duration FIRST_BACKOFF = Duration.ofSeconds(2);
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http;
     private final URI baseUrl;
     private final String model;
     private final String apiKey;
+    private final Consumer<Duration> sleeper;
 
     public OpenAiCompatibleClient(HttpClient http, URI baseUrl, String model, String apiKey) {
+        this(http, baseUrl, model, apiKey, OpenAiCompatibleClient::sleep);
+    }
+
+    /** @param sleeper espera entre tentativas (injetável para teste; o padrão é {@code Thread.sleep}) */
+    public OpenAiCompatibleClient(HttpClient http, URI baseUrl, String model, String apiKey,
+                                  Consumer<Duration> sleeper) {
         this.http = Objects.requireNonNull(http, "http");
         this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl");
         this.model = Objects.requireNonNull(model, "model");
         this.apiKey = Objects.requireNonNull(apiKey, "apiKey");
+        this.sleeper = Objects.requireNonNull(sleeper, "sleeper");
     }
 
     @Override
     public String complete(String prompt) {
-        HttpResponse response = http.send(new HttpRequest("POST", completionsUri(),
+        HttpRequest request = new HttpRequest("POST", completionsUri(),
                 Map.of("Content-Type", "application/json", "Authorization", "Bearer " + apiKey),
-                requestBody(prompt)));
+                requestBody(prompt));
+        HttpResponse response = http.send(request);
+        Duration backoff = FIRST_BACKOFF;
+        for (int attempt = 1; retryable(response.status()) && attempt < MAX_ATTEMPTS; attempt++) {
+            sleeper.accept(backoff);
+            backoff = backoff.multipliedBy(2);
+            response = http.send(request);
+        }
         if (response.status() < 200 || response.status() >= 300) {
-            throw new IllegalStateException("API de IA respondeu " + response.status() + ": "
+            String attempts = retryable(response.status()) ? " após " + MAX_ATTEMPTS + " tentativas" : "";
+            throw new IllegalStateException("API de IA respondeu " + response.status() + attempts + ": "
                     + snippet(response.body()));
         }
         JsonNode content = parse(response.body()).path("choices").path(0).path("message").path("content");
@@ -62,6 +83,20 @@ public final class OpenAiCompatibleClient implements LlmClient {
                     + snippet(response.body()));
         }
         return content.asText();
+    }
+
+    /** Erro temporário do provedor: limite de taxa ou falha do servidor. */
+    private static boolean retryable(int status) {
+        return status == 429 || (status >= 500 && status <= 599);
+    }
+
+    private static void sleep(Duration duration) {
+        try {
+            Thread.sleep(duration);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("espera do retry da API de IA interrompida", e);
+        }
     }
 
     /** Acrescenta o path à URL base sem perder o {@code /v1} ({@code URI.resolve} o descartaria). */
