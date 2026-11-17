@@ -170,7 +170,9 @@ como o protocolo exige, e segue.
 Saída em `--out` (padrão `experiments/results/`): um `run-<n>.csv` por execução (uma linha
 por caso × detector) e um `summary.csv` com a matriz de confusão e as métricas (precisão,
 recall, F1, taxa de falso positivo, tempo médio) por tipo de falha e no total, para cada
-detector. Protocolo e métricas em `docs/experiment.md`.
+detector. Caso sem previsão válida (exceção, ou o LLM não respondeu: erro da API, timeout,
+Ollama fora do ar) sai como `ERRO`, fora das métricas, com o motivo na coluna `erro`; o
+`summary.csv` conta esses casos na coluna `erros`. Protocolo e métricas em `docs/experiment.md`.
 
 Exemplos de saída real estão em [`docs/evidencias.md`](docs/evidencias.md).
 

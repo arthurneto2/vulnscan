@@ -2,9 +2,11 @@ package br.ufv.vulnscan.app.benchmark;
 
 import br.ufv.vulnscan.app.benchmark.GroundTruth.Case;
 import br.ufv.vulnscan.domain.detection.Detector;
+import br.ufv.vulnscan.domain.detection.LlmDetector;
 import br.ufv.vulnscan.domain.model.Finding;
 import br.ufv.vulnscan.domain.model.Payload;
 import br.ufv.vulnscan.domain.model.Target;
+import br.ufv.vulnscan.domain.model.Verdict;
 import br.ufv.vulnscan.domain.module.ApiAuthModule;
 import br.ufv.vulnscan.domain.module.ApiSession;
 import br.ufv.vulnscan.domain.module.AuthMode;
@@ -32,7 +34,8 @@ import java.util.function.Supplier;
  * de um ponto só a partir do {@code location}/tipo e roda com o detector pedido; o previsto é
  * "o módulo reportou achado?". DVWA: loga uma vez por nível {@code security} (via
  * {@link DvwaSession}, que cria o banco se preciso) e manda o cookie.
- * Juice Shop: a autenticação de API fica no {@link ApiSession}.
+ * Juice Shop: a autenticação de API fica no {@link ApiSession}. Caso sem achado em que o LLM não
+ * respondeu a alguma chamada → {@link IllegalStateException} (vira {@code ERRO}, #74).
  */
 public final class LabCaseRunner implements CaseRunner {
 
@@ -68,12 +71,30 @@ public final class LabCaseRunner implements CaseRunner {
             throw new IllegalArgumentException("detector desconhecido: " + detectorName);
         }
         Target target = target(c, baseUrl);
-        VulnModule module = moduleFor(c, detector);
+        RecordingDetector recording = new RecordingDetector(detector);
+        VulnModule module = moduleFor(c, recording);
         long start = System.nanoTime();
         List<Finding> findings = module.scan(target);
         long elapsed = Duration.ofNanos(System.nanoTime() - start).toMillis();
+        if (findings.isEmpty()) {
+            requireLlmAnswered(recording.verdicts());
+        }
         double confidence = findings.isEmpty() ? 0.0 : findings.get(0).verdict().confidence();
         return new CaseResult(!findings.isEmpty(), confidence, elapsed);
+    }
+
+    /**
+     * Sem achado, o "não vulnerável" só vale se o LLM respondeu a todas as chamadas do caso; se
+     * alguma foi de indisponibilidade (erro da API, timeout), o caso não tem previsão e vira
+     * {@code ERRO} no benchmark, em vez de FN/VN (#74).
+     */
+    private static void requireLlmAnswered(List<Verdict> verdicts) {
+        List<Verdict> unavailable = verdicts.stream().filter(LlmDetector::unavailable).toList();
+        if (!unavailable.isEmpty()) {
+            throw new IllegalStateException("LLM indisponível em " + unavailable.size() + " de "
+                    + verdicts.size() + " chamadas: "
+                    + unavailable.get(0).rationale().replaceFirst("^" + LlmDetector.UNAVAILABLE + ":\\s*", ""));
+        }
     }
 
     /** Esquece os cookies do DVWA: depois do reset do lab, a sessão antiga não vale mais. */

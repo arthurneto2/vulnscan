@@ -40,7 +40,9 @@ esse formato; ele só fala HTTP com o Ollama.
 - A chave só existe no ambiente e em memória: não aparece em log, exceção (o corpo de erro é
   mascarado), `toString` ou relatório.
 - Erro do provedor (401, 429, 5xx) ou timeout (`Config.llmTimeout()`, 120 s) vira
-  `Verdict(false, 0.0, "LLM indisponível: …")`, como no Ollama. Não há retry em 429.
+  `Verdict(false, 0.0, "LLM indisponível: …")`, como no Ollama. Não há retry em 429. No
+  benchmark, um caso sem achado com veredito de indisponibilidade (`LlmDetector.unavailable`)
+  vira `ERRO`, não FN/VN (#74).
 - **Dados:** no plano gratuito, a NVIDIA registra entradas e saídas e pode usá-las para
   melhorar seus modelos. Só mandamos tráfego do laboratório (DVWA/Juice Shop).
 

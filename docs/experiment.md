@@ -87,6 +87,13 @@ conhecida.
   tempo médio dos casos `impossible`, igual para os dois detectores. As rodadas foram
   refeitas com a página real (seção "Rodada após as #59 e #68"): o FP do LLM continuou 0%,
   então o resultado antigo se confirmou.
+- **Indisponibilidade do LLM contada como previsão antes da #74.** Até a #74, uma chamada ao
+  LLM que falhava (erro da API, timeout, Ollama fora do ar) virava "não vulnerável": FN num
+  caso positivo e VN num negativo, sem rastro no CSV. As rodadas de referência não registraram
+  nenhum timeout nem `429` pelos logs, mas não dá para garantir caso a caso. No checkpoint da
+  #60, dois FN do Ultra levaram 175 e 456 ms (uma chamada normal leva de 7 a 44 s),
+  provavelmente erro da API. Desde a #74, esses casos saem como `ERRO`, com o motivo, e são
+  contados na coluna `erros` do resumo.
 
 ## Escolha do modelo (issue #61)
 
@@ -209,8 +216,12 @@ Ollama com `200`; nenhum `429` ou erro na API).
 ## Saída
 
 - `experiments/results/run-<n>.csv`: uma linha por (caso, detector) com veredito,
-  confiança, acerto (VP/FP/VN/FN) e tempo.
+  confiança, acerto (VP/FP/VN/FN) e tempo. Um caso sem previsão válida sai como `ERRO`, fora
+  da matriz, com o motivo na coluna `erro`: exceção na execução (ex.: login do DVWA) ou, desde
+  a #74, caso sem achado em que o LLM **não respondeu** a alguma chamada (erro da API, como
+  429/5xx, timeout, Ollama fora do ar).
 - `experiments/results/summary.csv`: matriz de confusão e métricas, heurística vs LLM, por
-  tipo de falha.
+  tipo de falha, e a coluna `erros` (quantos `ERRO` por tipo e no total). Rodada com `erros`
+  > 0 deve ser refeita ou relatada com essa ressalva.
 
 Essas tabelas vão diretas para o relatório técnico e para a apresentação.

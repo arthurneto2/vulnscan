@@ -57,6 +57,8 @@ record ScanReport(Target target, java.time.Instant startedAt,
 // domain/detection/Detector.java
 // Julga se uma evidência indica vulnerabilidade. Duas implementações:
 //   HeuristicDetector (regex/regras, puro)  e  LlmDetector (usa a porta LlmClient).
+//   LlmDetector.UNAVAILABLE ("LLM indisponível") e LlmDetector.unavailable(Verdict): o veredito é de
+//   falha do cliente (o modelo não respondeu)? No benchmark, caso sem achado com isso vira ERRO (#74).
 public interface Detector {
     Verdict judge(Evidence evidence);
     String name();   // "heuristic" ou "llm"
@@ -276,6 +278,9 @@ enum Outcome { TP, FP, TN, FN }   // Outcome.of(esperado, previsto)
 // ConfusionMatrix: tp/fp/tn/fn + precision/recall/f1/falsePositiveRate (denominador 0 → 0.0).
 
 // Costura de execução de um caso; LabCaseRunner liga caso→módulo (um ponto só) e roda.
+// LabCaseRunner: caso sem achado em que algum veredito foi LlmDetector.unavailable → IllegalStateException
+// ("LLM indisponível em k de n chamadas: …") → ERRO no benchmark (#74). Vereditos vistos por um
+// RecordingDetector (decorador package-private), sem interface nova.
 interface CaseRunner {
     CaseResult run(GroundTruth.Case c, java.net.URI baseUrl, String detectorName);
     default void forgetSessions() { }   // depois do reset do lab (#60): LabCaseRunner esquece o cookie do DVWA
@@ -290,6 +295,9 @@ public interface LabReset {
 }
 
 // Roda N vezes; grava run-<n>.csv e summary.csv; devolve detector → (tipo|TOTAL) → ConfusionMatrix.
+// run-<n>.csv: run,caso,tipo,detector,esperado,previsto,confianca,outcome,tempo_ms,erro — exceção de um
+//   caso vira outcome=ERRO (fora da matriz) com o motivo em "erro" (uma linha, "," → ";", ≤ 200 chars).
+// summary.csv: detector,tipo,tp,fp,tn,fn,precisao,recall,f1,fpr,tempo_medio_ms,erros (#74).
 // Com reset ≠ NONE: antes de cada execução, reset.reset(baseUrls do gabarito) e runner.forgetSessions().
 public final class BenchmarkRunner {
     public BenchmarkRunner(GroundTruth gt, CaseRunner runner, java.util.List<String> detectors, int runs) { ... } // reset = NONE
