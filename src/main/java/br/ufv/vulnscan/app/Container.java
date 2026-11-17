@@ -25,6 +25,8 @@ import br.ufv.vulnscan.domain.module.StoredXssModule;
 import br.ufv.vulnscan.domain.module.StoredXssPoint;
 import br.ufv.vulnscan.domain.module.VulnModule;
 import br.ufv.vulnscan.app.benchmark.CaseRunner;
+import br.ufv.vulnscan.app.benchmark.DockerComposeLabReset;
+import br.ufv.vulnscan.app.benchmark.LabReset;
 import br.ufv.vulnscan.app.benchmark.LabCaseRunner;
 import br.ufv.vulnscan.domain.module.XssBrowser;
 import br.ufv.vulnscan.domain.module.XssModule;
@@ -116,13 +118,18 @@ public final class Container {
         return benchmarkService(LLM_OLLAMA);
     }
 
-    /** Caso de uso do experimento: LabCaseRunner com os dois detectores sobre os módulos reais. */
+    /**
+     * Caso de uso do experimento: LabCaseRunner com os dois detectores sobre os módulos reais e o
+     * reset do lab via docker compose (só usado com {@code --reset}).
+     */
     public BenchmarkService benchmarkService(String llm) {
         CaseRunner runner = new LabCaseRunner(detectors(llm), httpClient, browser, apiSession,
                 payloads(SQLI_PAYLOADS, VulnType.SQL_INJECTION),
                 payloads(XSS_PAYLOADS, VulnType.XSS_REFLECTED),
                 payloads(XSS_PAYLOADS, VulnType.XSS_STORED), Container::newMarker);
-        return new BenchmarkService(runner, List.of("heuristic", "llm"));
+        LabReset labReset = new DockerComposeLabReset(Config.LAB_RESET_COMMANDS, httpClient,
+                Config.LAB_READY_TIMEOUT, Config.LAB_POLL_INTERVAL);
+        return new BenchmarkService(runner, List.of("heuristic", "llm"), labReset);
     }
 
     /** Detectores por nome: heurístico (puro) e LLM, com o backend escolhido e o timeout próprio. */

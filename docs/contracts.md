@@ -223,15 +223,22 @@ public final class InvalidScanRequestException extends RuntimeException { ... }
 public record Config(java.time.Duration httpTimeout, java.net.URI ollamaBaseUrl, String ollamaModel,
                      java.time.Duration llmTimeout) {
     public static Config defaults() { ... }   // 30 s, http://localhost:11434, qwen2.5:14b-instruct, 120 s
+    // Reset do lab (#60): docker compose -f lab/docker-compose.yml down / up -d; 180 s; 2 s.
+    public static final java.util.List<java.util.List<String>> LAB_RESET_COMMANDS = ...;
+    public static final java.time.Duration LAB_READY_TIMEOUT = ...;
+    public static final java.time.Duration LAB_POLL_INTERVAL = ...;
 }
 
 // app/BenchmarkRequest.java — pedido de benchmark da CLI. runs ≤ 0 → 3; outDir nulo → experiments/results.
-public record BenchmarkRequest(java.nio.file.Path groundTruth, int runs, java.nio.file.Path outDir) {}
+// reset: resetar o lab antes de cada execução (--reset, #60); o construtor de 3 argumentos usa false.
+public record BenchmarkRequest(java.nio.file.Path groundTruth, int runs, java.nio.file.Path outDir, boolean reset) {}
 
 // app/BenchmarkService.java — caso de uso do experimento. Valida (gabarito existe), carrega o
 // GroundTruth, roda o BenchmarkRunner com os detectores dados e devolve o caminho do summary.csv.
 public final class BenchmarkService {
-    public BenchmarkService(br.ufv.vulnscan.app.benchmark.CaseRunner runner, java.util.List<String> detectors) { ... }
+    public BenchmarkService(br.ufv.vulnscan.app.benchmark.CaseRunner runner, java.util.List<String> detectors) { ... } // sem reset
+    public BenchmarkService(br.ufv.vulnscan.app.benchmark.CaseRunner runner, java.util.List<String> detectors,
+                            br.ufv.vulnscan.app.benchmark.LabReset labReset) { ... } // usado só se request.reset()
     public java.nio.file.Path run(BenchmarkRequest request) { ... }
 }
 

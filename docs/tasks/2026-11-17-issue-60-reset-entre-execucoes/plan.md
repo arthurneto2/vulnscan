@@ -46,16 +46,17 @@ refactor. Mudou contrato → `docs/contracts.md` no mesmo passo.
   Refactor: Javadoc da classe; mensagem de prazo cita a URL e o tempo.
   Verificar: `mvn test -Dtest=DockerComposeLabResetTest`.
 
-- [ ] **6. `BenchmarkRequest.reset` e `BenchmarkService` (red → green).**
+- [x] **6. `BenchmarkRequest.reset` e `BenchmarkService` (red → green).**
   Testes: `BenchmarkServiceTest#resetLigadoChamaOLabReset` e `#resetDesligadoNaoChama`.
   Green: componente `boolean reset` no record; `BenchmarkService(CaseRunner, List<String>,
   LabReset)` passa o reset ao runner só se `request.reset()`. Ajustar chamadas existentes do
   construtor do record (testes e CLI).
   Contratos: `BenchmarkRequest` e `BenchmarkService` em `docs/contracts.md`.
 
-- [ ] **7. Ligação no `Container` e no `Config`.**
-  `Config.labResetCommands` = `[docker compose -f lab/docker-compose.yml down]`,
-  `[... up -d]`; `Config.labReadyTimeout` = 180 s. `Container.benchmarkService(llm)` cria o
+- [x] **7. Ligação no `Container` e no `Config`.**
+  Constantes `Config.LAB_RESET_COMMANDS` = `[docker compose -f lab/docker-compose.yml down]`,
+  `[... up -d]`, `LAB_READY_TIMEOUT` = 180 s e `LAB_POLL_INTERVAL` = 2 s (desvio: constantes, não
+  componentes do record; teste `ConfigTest#resetDoLabDerrubaESobeOComposeDoLaboratorio`). `Container.benchmarkService(llm)` cria o
   `DockerComposeLabReset` com o `httpClient`. Coberto pelos testes existentes do `Container`
   (sem Docker: o reset só roda com `--reset`).
 

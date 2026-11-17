@@ -20,7 +20,7 @@ DVWA), o que pode contaminar o resultado a partir da segunda execução.
       diretório atual, como o resto da documentação);
    2. espera cada `baseUrl` do gabarito responder a um `GET` (qualquer status HTTP serve:
       o DVWA responde 302 para o login), com intervalo de 2 s e prazo de 180 s
-      (`Config.labReadyTimeout`);
+      (`Config.LAB_READY_TIMEOUT`);
    3. esquece as sessões guardadas pelo runner (o cookie do DVWA por nível de `security`),
       que deixam de valer depois do reset. O banco do DVWA é criado de novo pelo login,
       como já acontece desde a #59.
@@ -65,7 +65,8 @@ DVWA), o que pode contaminar o resultado a partir da segunda execução.
 - `BenchmarkRequest`: novo componente `boolean reset`
   (`BenchmarkRequest(Path groundTruth, int runs, Path outDir, boolean reset)`).
 - `BenchmarkService`: recebe o `LabReset` real no construtor e o usa só se `request.reset()`.
-- `Config`: `labResetCommands` (lista de comandos) e `labReadyTimeout` (180 s).
+- `Config`: constantes `LAB_RESET_COMMANDS`, `LAB_READY_TIMEOUT` (180 s) e `LAB_POLL_INTERVAL`
+  (2 s), e não componentes do record, para não mexer em quem constrói o `Config`.
 
 ## Critérios de aceite (viram testes)
 

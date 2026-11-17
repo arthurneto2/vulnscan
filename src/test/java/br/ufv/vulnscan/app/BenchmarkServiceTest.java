@@ -5,11 +5,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -68,6 +71,34 @@ class BenchmarkServiceTest {
         assertThrows(InvalidScanRequestException.class,
                 () -> new BenchmarkService(perfect, List.of("heuristic"))
                         .run(new BenchmarkRequest(dir.resolve("nao-existe.yaml"), 1, dir.resolve("o"))));
+    }
+
+    @Test
+    void resetLigadoChamaOLabResetAntesDeCadaExecucao() throws IOException {
+        Path gt = write(GT);
+        List<List<URI>> resets = new ArrayList<>();
+
+        new BenchmarkService(perfect, List.of("heuristic"), resets::add)
+                .run(new BenchmarkRequest(gt, 2, dir.resolve("r"), true));
+
+        assertEquals(List.of(List.of(URI.create("http://localhost:8080")),
+                List.of(URI.create("http://localhost:8080"))), resets);
+    }
+
+    @Test
+    void resetDesligadoNaoChamaOLabReset() throws IOException {
+        Path gt = write(GT);
+        List<List<URI>> resets = new ArrayList<>();
+
+        new BenchmarkService(perfect, List.of("heuristic"), resets::add)
+                .run(new BenchmarkRequest(gt, 2, dir.resolve("r"), false));
+
+        assertTrue(resets.isEmpty(), resets::toString);
+    }
+
+    @Test
+    void pedidoSemResetExplicitoNaoReseta() {
+        assertFalse(new BenchmarkRequest(dir, 1, dir).reset());
     }
 
     private Path write(String content) throws IOException {
