@@ -9,7 +9,8 @@ em API REST. Arquitetura hexagonal (ports & adapters); tudo open source e offlin
 
 ## Pré-requisitos
 
-- Java 21 (JDK) e Maven
+- Java 21 ou mais novo (JDK) e Maven. O build mira o Java 21; as rodadas do experimento
+  também rodaram no Java 25.
 - Docker e Docker Compose (para o laboratório de alvos)
 - Para a camada de IA, **um dos dois**:
   - Ollama local (padrão): https://ollama.com, com o modelo abaixo;
@@ -22,6 +23,22 @@ ollama pull qwen2.5:14b-instruct
 Modelo fixado para o experimento (reprodutibilidade): tag `qwen2.5:14b-instruct`
 (Q4_K_M, Apache-2.0, ~9 GB), digest `sha256:7cdf5a0187d5c58cc5d369b255592f7841d1c4696d45a8c8a9489440385b22f6`. A tag também está em
 `app/Config.java` (`Config.defaults()`).
+
+Para conferir se o modelo baixado é o fixado, use o comando abaixo. O `ollama list --digests`
+não existe mais no Ollama 0.40. O digest é o do manifesto do registro, que lista o blob dos
+pesos; o comando deve devolver `1`:
+
+```bash
+grep -c sha256:7cdf5a0187d5c58cc5d369b255592f7841d1c4696d45a8c8a9489440385b22f6 \
+  ~/.ollama/models/manifests/registry.ollama.ai/library/qwen2.5/14b-instruct
+```
+
+Para instalar o Ollama sem sudo, extraia o tarball de Linux do release do Ollama em
+`~/.local/ollama` (ficam `bin/` e `lib/`) e suba o servidor só em localhost:
+
+```bash
+OLLAMA_HOST=127.0.0.1:11434 ~/.local/ollama/bin/ollama serve
+```
 
 **Modelo local: mínimo de 14B parâmetros.** Modelos de 7B (Mistral 7B, Qwen2.5 7B) erram de
 forma sistemática ao julgar saída com escape de HTML e geram falso positivo fixo; o motivo e
@@ -71,7 +88,9 @@ docker compose -f lab/docker-compose.yml down && docker compose -f lab/docker-co
 ```
 
 As imagens do laboratório são **fixadas por digest** no `docker-compose.yml`
-(reprodutibilidade — ver `docs/experiment.md`).
+(reprodutibilidade — ver `docs/experiment.md`). As portas são publicadas **só em
+`127.0.0.1`**. Os alvos são deliberadamente vulneráveis e não ficam acessíveis por outras
+máquinas da rede.
 
 O **DVWA sobe sem banco**: depois de subir ou resetar o lab, abra
 `http://localhost:8080/setup.php` e clique em *Create / Reset Database*; sem isso o login
@@ -103,7 +122,7 @@ Cada tag `v*` publicada no GitHub gera automaticamente um Release com:
 - `vulnscan.jar`: aplicação executável;
 - `vulnscan-vX.Y.Z.tar.gz`: JAR, laboratório Docker, gabarito do benchmark e documentação.
 
-Para executar, instale Java 21, baixe `vulnscan.jar` e rode:
+Para executar, instale o Java 21 ou mais novo, baixe o `vulnscan.jar` e rode:
 
 ```bash
 java -jar vulnscan.jar scan --target http://localhost:3000 --module xss
