@@ -74,9 +74,15 @@ conhecida.
   O mesmo vale para a janela do corpo (issue #72): a exigência de letra e dígito no token
   que ancora a janela foi acrescentada depois de uma rodada em que o Ultra errou
   `js-auth-admin-config`, também nesses 14 casos.
-- **Sem negativo de XSS de DOM no gabarito.** `js-xss-dom-search` é o único caso de DOM e é
-  positivo. O FP do LLM nesse caminho (DOM renderizado, janela ao redor do payload) não é
-  medido.
+- **Negativo de XSS de DOM só desde a #77.** Até a #77, `js-xss-dom-search` era o único caso
+  de DOM e era positivo: o FP do LLM nesse caminho (DOM renderizado, janela ao redor do
+  payload) não era medido, e as rodadas tinham 14 casos. A #77 acrescentou o par do DVWA
+  (`dvwa-xss-dom-low`, positivo, e `dvwa-xss-dom-impossible`, negativo: o payload aparece no
+  DOM codificado e não executa) e corrigiu a codificação do `DomXssModule`, que passava o
+  payload pelo `URLEncoder` (`/` virava `%2F`, que o `decodeURI` da página não desfaz) e por
+  isso não detectava o low. Agora o payload vai com a codificação de um navegador
+  (`InjectionPoint.browserUrl`). As rodadas anteriores usaram a codificação antiga no
+  `js-xss-dom-search`.
 
 - **Negativos do DVWA antes da #68.** No nível `impossible`, o DVWA exige um token
   anti-CSRF novo a cada submissão e, sem ele, responde `302` antes de executar a consulta.

@@ -35,6 +35,20 @@ targets:
         vulnerable: false
         notes: "negativo — mesmo campo no nível impossible (escapa a entrada)"
 
+      - id: dvwa-xss-dom-low
+        type: XSS_REFLECTED
+        location: "/vulnerabilities/xss_d/#?default="
+        security: low
+        vulnerable: true
+        notes: "XSS de DOM — document.write com decodeURI do location.href; executa no navegador (#77)"
+
+      - id: dvwa-xss-dom-impossible
+        type: XSS_REFLECTED
+        location: "/vulnerabilities/xss_d/#?default="
+        security: impossible
+        vulnerable: false
+        notes: "negativo de DOM — reflete o valor sem decodificar (%3Cscript%3E…), não executa (#77)"
+
       - id: dvwa-xss-stored-low
         type: XSS_STORED
         location: "/vulnerabilities/xss_s/"

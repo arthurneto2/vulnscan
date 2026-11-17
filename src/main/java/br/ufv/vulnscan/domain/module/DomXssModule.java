@@ -20,7 +20,8 @@ import java.util.function.Supplier;
  * Domínio: módulo de XSS de DOM (estratégia {@link VulnModule}, tipo {@code XSS_REFLECTED}).
  * Igual ao {@link XssModule}, mas abre a URL num navegador real ({@link XssBrowser}) em vez de
  * fazer só a requisição HTTP: o XSS de DOM (ex.: {@code /#/search?q=} do Juice Shop) não
- * aparece em resposta HTTP nenhuma. A {@link Evidence} leva o {@code GET} e a resposta
+ * aparece em resposta HTTP nenhuma. A URL leva o payload com a codificação de um navegador
+ * ({@link InjectionPoint#browserUrl}, #77), não a de formulário. A {@link Evidence} leva o {@code GET} e a resposta
  * sintética da página renderizada ({@link RenderedPage#toResponse()}, com os diálogos).
  * Positivo → {@link Finding} {@link Severity#MEDIUM} e encerra o ponto. Erro do navegador
  * propaga.
@@ -63,7 +64,7 @@ public final class DomXssModule implements VulnModule {
         for (InjectionPoint point : points) {
             for (Payload template : payloads) {
                 Payload payload = MarkedPayloads.withMarker(template, markers.get());
-                URI url = point.url(target.baseUrl(), payload.value());
+                URI url = point.browserUrl(target.baseUrl(), payload.value());
                 RenderedPage page = browser.open(url, target.headers());
                 Evidence evidence = new Evidence(payload,
                         new HttpRequest("GET", url, target.headers(), null), page.toResponse());
