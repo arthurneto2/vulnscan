@@ -2,6 +2,7 @@ package br.ufv.vulnscan.app;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.List;
 
 /**
  * Aplicação: configuração fixa do scanner, lida pela raiz de composição (e, na camada de IA,
@@ -24,6 +25,20 @@ public record Config(Duration httpTimeout, URI ollamaBaseUrl, String ollamaModel
 
     /** O 14B leva ~20 s por veredito (máx. ~80 s numa GPU de 6 GB): 30 s cortaria parte deles. */
     private static final Duration DEFAULT_LLM_TIMEOUT = Duration.ofSeconds(120);
+
+    /**
+     * Reset do lab entre execuções do benchmark ({@code --reset}, #60): derruba e sobe o compose do
+     * laboratório (caminho relativo à raiz do repositório), sem shell.
+     */
+    public static final List<List<String>> LAB_RESET_COMMANDS = List.of(
+            List.of("docker", "compose", "-f", "lab/docker-compose.yml", "down"),
+            List.of("docker", "compose", "-f", "lab/docker-compose.yml", "up", "-d"));
+
+    /** Prazo para cada alvo responder depois do {@code up -d} (Juice Shop leva dezenas de segundos). */
+    public static final Duration LAB_READY_TIMEOUT = Duration.ofSeconds(180);
+
+    /** Espera entre tentativas enquanto os alvos sobem. */
+    public static final Duration LAB_POLL_INTERVAL = Duration.ofSeconds(2);
 
     /** Alvo com timeout de 30 s (comporta o SQLi temporal); Ollama local com 120 s e o modelo fixado. */
     public static Config defaults() {

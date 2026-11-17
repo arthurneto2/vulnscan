@@ -66,7 +66,7 @@ docker compose -f lab/docker-compose.yml up -d
 docker compose -f lab/docker-compose.yml down
 
 # Resetar ao estado de fábrica (OBRIGATÓRIO entre execuções do benchmark:
-# o XSS armazenado suja o banco)
+# o XSS armazenado suja o banco; o `benchmark --reset` faz isso sozinho)
 docker compose -f lab/docker-compose.yml down && docker compose -f lab/docker-compose.yml up -d
 ```
 
@@ -153,13 +153,19 @@ Detalhes e códigos de saída em `docs/cli.md`.
 Roda a heurística **e** o LLM sobre o gabarito, compara com a verdade conhecida e grava os CSVs.
 
 ```
-vulnscan benchmark --ground-truth <arquivo> [--runs <n>] [--out <dir>]
+vulnscan benchmark --ground-truth <arquivo> [--runs <n>] [--llm ollama|api] [--reset] [--out <dir>]
 ```
 
 ```bash
-# Alvos no estado de fábrica + Ollama no ar
-java -jar target/vulnscan.jar benchmark --ground-truth experiments/ground_truth.yaml --runs 3
+# Na raiz do repositório, com Docker e o Ollama no ar
+java -jar target/vulnscan.jar benchmark --ground-truth experiments/ground_truth.yaml --runs 3 --reset
 ```
+
+Com `--reset`, antes de **cada** execução o benchmark derruba e sobe o laboratório
+(`docker compose -f lab/docker-compose.yml down` e `up -d`), espera os alvos responderem (até
+180 s) e cria o banco do DVWA no login. Se o reset falhar, o benchmark para com código 2.
+Sem `--reset` e com `--runs` maior que 1, ele avisa no stderr que o lab não será resetado,
+como o protocolo exige, e segue.
 
 Saída em `--out` (padrão `experiments/results/`): um `run-<n>.csv` por execução (uma linha
 por caso × detector) e um `summary.csv` com a matriz de confusão e as métricas (precisão,

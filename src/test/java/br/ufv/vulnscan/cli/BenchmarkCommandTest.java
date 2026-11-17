@@ -4,6 +4,7 @@ import br.ufv.vulnscan.app.BenchmarkRequest;
 import br.ufv.vulnscan.app.BenchmarkService;
 import br.ufv.vulnscan.app.InvalidScanRequestException;
 import br.ufv.vulnscan.app.benchmark.CaseRunner;
+import br.ufv.vulnscan.app.benchmark.LabReset;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -83,6 +84,57 @@ class BenchmarkCommandTest {
 
         assertEquals(1, r.code(), r.err());
         assertTrue(r.err().contains("VULNSCAN_LLM_API_KEY"), r.err());
+    }
+
+    @Test
+    void resetRepassaParaOPedido() throws IOException {
+        List<String> resets = new java.util.ArrayList<>();
+
+        Result r = run(withReset(urls -> resets.add("reset")), "benchmark", "--ground-truth",
+                gabarito().toString(), "--runs", "2", "--out", dir.resolve("res").toString(), "--reset");
+
+        assertEquals(0, r.code(), r.err());
+        assertEquals(List.of("reset", "reset"), resets);
+        assertFalse(r.err().contains("não será resetado"), r.err());
+    }
+
+    @Test
+    void variasExecucoesSemResetAvisaNoStderr() throws IOException {
+        Result r = run("benchmark", "--ground-truth", gabarito().toString(), "--runs", "2",
+                "--out", dir.resolve("res").toString());
+
+        assertEquals(0, r.code(), r.err());
+        assertTrue(r.err().contains("aviso: o laboratório não será resetado entre as execuções"), r.err());
+        assertTrue(r.err().contains("--reset"), r.err());
+    }
+
+    @Test
+    void umaExecucaoSemResetNaoAvisa() throws IOException {
+        Result r = run("benchmark", "--ground-truth", gabarito().toString(), "--runs", "1",
+                "--out", dir.resolve("res").toString());
+
+        assertEquals(0, r.code(), r.err());
+        assertEquals("", r.err());
+    }
+
+    @Test
+    void falhaNoResetSai2SemStackTrace() throws IOException {
+        LabReset falha = urls -> {
+            throw new IllegalStateException("reset do lab: 'docker compose down' saiu com código 1");
+        };
+
+        Result r = run(withReset(falha), "benchmark", "--ground-truth", gabarito().toString(),
+                "--runs", "1", "--out", dir.resolve("res").toString(), "--reset");
+
+        assertEquals(2, r.code(), r.err());
+        assertTrue(r.err().contains("erro: reset do lab: 'docker compose down' saiu com código 1"), r.err());
+        assertFalse(r.err().contains("\tat "), r.err());
+    }
+
+    private Main withReset(LabReset reset) {
+        return new Main(() -> {
+            throw new UnsupportedOperationException("scan não usado");
+        }, () -> new BenchmarkService(runner, List.of("heuristic"), reset));
     }
 
     private Path gabarito() throws IOException {

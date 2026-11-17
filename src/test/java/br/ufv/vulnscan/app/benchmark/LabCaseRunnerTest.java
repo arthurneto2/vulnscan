@@ -1,19 +1,29 @@
 package br.ufv.vulnscan.app.benchmark;
 
 import br.ufv.vulnscan.app.benchmark.GroundTruth.Case;
+import br.ufv.vulnscan.domain.detection.Detector;
+import br.ufv.vulnscan.domain.model.Evidence;
 import br.ufv.vulnscan.domain.model.HttpResponse;
+import br.ufv.vulnscan.domain.model.Payload;
+import br.ufv.vulnscan.domain.model.Verdict;
 import br.ufv.vulnscan.domain.model.VulnType;
 import br.ufv.vulnscan.domain.module.InjectionPoint;
 import br.ufv.vulnscan.port.HttpClient;
 import org.junit.jupiter.api.Test;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
-/** Testa, offline, a derivação do ponto de injeção e a escolha do HttpClient por caso. */
+/**
+ * Testa, offline, a derivação do ponto de injeção, a escolha do HttpClient por caso e o cache
+ * da sessão do DVWA.
+ */
 class LabCaseRunnerTest {
 
     @Test
@@ -66,5 +76,47 @@ class LabCaseRunnerTest {
         assertSame(PLAIN, LabCaseRunner.httpFor(low, PLAIN));
         assertSame(PLAIN, LabCaseRunner.httpFor(semNivel, PLAIN));
         assertSame(PLAIN, LabCaseRunner.httpFor(juice, PLAIN));
+    }
+
+    @Test
+    void forgetSessionsFazNovoLoginNoDvwa() {
+        List<String> logins = new ArrayList<>();
+        HttpClient http = request -> {
+            String path = request.url().getPath();
+            if (path.equals("/login.php") && request.method().equals("GET")) {
+                return new HttpResponse(200, Map.of("set-cookie", "PHPSESSID=abc; path=/"),
+                        "<input type='hidden' name='user_token' value='aaa' />", 1);
+            }
+            if (path.equals("/login.php")) {
+                logins.add("login");
+                return new HttpResponse(302, Map.of("location", "index.php"), "", 1);
+            }
+            return new HttpResponse(200, Map.of(), "ok", 1);
+        };
+        Detector nunca = new Detector() {
+            @Override
+            public Verdict judge(Evidence evidence) {
+                return new Verdict(false, 0.0, "fake", "heuristic");
+            }
+
+            @Override
+            public String name() {
+                return "heuristic";
+            }
+        };
+        LabCaseRunner runner = new LabCaseRunner(Map.of("heuristic", nunca), http, null, null,
+                List.of(new Payload("p1", VulnType.SQL_INJECTION, "'", "aspa")), List.of(), List.of(),
+                () -> "vsx");
+        Case dvwa = new Case("dvwa-sqli", VulnType.SQL_INJECTION, "/vulnerabilities/sqli/?Submit=Submit&id=",
+                "low", null, true, null);
+        URI base = URI.create("http://localhost:8080");
+
+        runner.run(dvwa, base, "heuristic");
+        runner.run(dvwa, base, "heuristic");
+        assertEquals(1, logins.size(), "sem forgetSessions, o cookie é reaproveitado");
+
+        runner.forgetSessions();
+        runner.run(dvwa, base, "heuristic");
+        assertEquals(2, logins.size(), "depois do forgetSessions, loga de novo");
     }
 }

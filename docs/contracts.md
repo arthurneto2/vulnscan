@@ -223,15 +223,22 @@ public final class InvalidScanRequestException extends RuntimeException { ... }
 public record Config(java.time.Duration httpTimeout, java.net.URI ollamaBaseUrl, String ollamaModel,
                      java.time.Duration llmTimeout) {
     public static Config defaults() { ... }   // 30 s, http://localhost:11434, qwen2.5:14b-instruct, 120 s
+    // Reset do lab (#60): docker compose -f lab/docker-compose.yml down / up -d; 180 s; 2 s.
+    public static final java.util.List<java.util.List<String>> LAB_RESET_COMMANDS = ...;
+    public static final java.time.Duration LAB_READY_TIMEOUT = ...;
+    public static final java.time.Duration LAB_POLL_INTERVAL = ...;
 }
 
 // app/BenchmarkRequest.java — pedido de benchmark da CLI. runs ≤ 0 → 3; outDir nulo → experiments/results.
-public record BenchmarkRequest(java.nio.file.Path groundTruth, int runs, java.nio.file.Path outDir) {}
+// reset: resetar o lab antes de cada execução (--reset, #60); o construtor de 3 argumentos usa false.
+public record BenchmarkRequest(java.nio.file.Path groundTruth, int runs, java.nio.file.Path outDir, boolean reset) {}
 
 // app/BenchmarkService.java — caso de uso do experimento. Valida (gabarito existe), carrega o
 // GroundTruth, roda o BenchmarkRunner com os detectores dados e devolve o caminho do summary.csv.
 public final class BenchmarkService {
-    public BenchmarkService(br.ufv.vulnscan.app.benchmark.CaseRunner runner, java.util.List<String> detectors) { ... }
+    public BenchmarkService(br.ufv.vulnscan.app.benchmark.CaseRunner runner, java.util.List<String> detectors) { ... } // sem reset
+    public BenchmarkService(br.ufv.vulnscan.app.benchmark.CaseRunner runner, java.util.List<String> detectors,
+                            br.ufv.vulnscan.app.benchmark.LabReset labReset) { ... } // usado só se request.reset()
     public java.nio.file.Path run(BenchmarkRequest request) { ... }
 }
 
@@ -271,12 +278,22 @@ enum Outcome { TP, FP, TN, FN }   // Outcome.of(esperado, previsto)
 // Costura de execução de um caso; LabCaseRunner liga caso→módulo (um ponto só) e roda.
 interface CaseRunner {
     CaseResult run(GroundTruth.Case c, java.net.URI baseUrl, String detectorName);
+    default void forgetSessions() { }   // depois do reset do lab (#60): LabCaseRunner esquece o cookie do DVWA
     record CaseResult(boolean predictedVulnerable, double confidence, long elapsedMillis) {}
 }
 
+// Costura do reset do lab entre execuções (#60). Não é porta: fica em app/, como o CaseRunner.
+// Real: DockerComposeLabReset (docker compose down/up -d + espera cada baseUrl responder).
+public interface LabReset {
+    LabReset NONE = baseUrls -> { };
+    void reset(java.util.List<java.net.URI> baseUrls);   // falha/prazo → IllegalStateException
+}
+
 // Roda N vezes; grava run-<n>.csv e summary.csv; devolve detector → (tipo|TOTAL) → ConfusionMatrix.
+// Com reset ≠ NONE: antes de cada execução, reset.reset(baseUrls do gabarito) e runner.forgetSessions().
 public final class BenchmarkRunner {
-    public BenchmarkRunner(GroundTruth gt, CaseRunner runner, java.util.List<String> detectors, int runs) { ... }
+    public BenchmarkRunner(GroundTruth gt, CaseRunner runner, java.util.List<String> detectors, int runs) { ... } // reset = NONE
+    public BenchmarkRunner(GroundTruth gt, CaseRunner runner, java.util.List<String> detectors, int runs, LabReset reset) { ... }
     public java.util.Map<String, java.util.Map<String, ConfusionMatrix>> run(java.nio.file.Path outDir) { ... }
 }
 ```

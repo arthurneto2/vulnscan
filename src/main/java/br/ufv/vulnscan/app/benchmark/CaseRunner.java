@@ -9,6 +9,13 @@ public interface CaseRunner {
 
     CaseResult run(Case testCase, URI baseUrl, String detectorName);
 
+    /**
+     * Descarta sessões guardadas entre casos (ex.: cookie do DVWA), que deixam de valer depois do
+     * reset do lab. Padrão: nada a esquecer.
+     */
+    default void forgetSessions() {
+    }
+
     /** Previsto pelo detector (positivo/negativo), confiança do achado (0 se negativo) e tempo. */
     record CaseResult(boolean predictedVulnerable, double confidence, long elapsedMillis) {}
 }
